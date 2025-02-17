@@ -129,7 +129,7 @@ class _MyHomePageState extends State<MyHomePage> {
       body: _getPage(_selectedIndex),
       bottomNavigationBar: BottomNavigationBar(
         items: const <BottomNavigationBarItem>[
-          BottomNavigationBarItem(icon: Icon(Icons.headphones), label: '今すぐ開く'),
+          BottomNavigationBarItem(icon: Icon(Icons.headphones), label: '今すぐ聞く'),
           BottomNavigationBarItem(
             icon: Icon(Icons.download),
             label: 'ダウンロード済み',
@@ -146,7 +146,7 @@ class _MyHomePageState extends State<MyHomePage> {
   Widget _getPage(int index) {
     switch (index) {
       case 0:
-        return const Center(child: Text('今すぐ開く'));
+        return const Center(child: Text('今すぐ聞く'));
       case 1:
         return const Center(child: Text('ダウンロード済み'));
       case 2:
