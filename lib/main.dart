@@ -6,7 +6,10 @@ import 'package:flutter/services.dart' show rootBundle;
 Future<Map<String, List<String>>> loadMembers() async {
   final String jsonString = await rootBundle.loadString('lib/members.json');
   final dynamic jsonResponse = jsonDecode(jsonString);
-  return (jsonResponse as Map<String, dynamic>).map<String, List<String>>((key, value) {
+  return (jsonResponse as Map<String, dynamic>).map<String, List<String>>((
+    key,
+    value,
+  ) {
     return MapEntry(key, List<String>.from(value as List));
   });
 }
@@ -201,9 +204,7 @@ class _SettingsPageState extends State<SettingsPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           Padding(
-            padding: EdgeInsets.all(
-              MediaQuery.of(context).size.width * 0.02,
-            ),
+            padding: EdgeInsets.all(MediaQuery.of(context).size.width * 0.02),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -216,9 +217,7 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
           ),
           Padding(
-            padding: EdgeInsets.all(
-              MediaQuery.of(context).size.width * 0.02,
-            ),
+            padding: EdgeInsets.all(MediaQuery.of(context).size.width * 0.02),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -252,6 +251,7 @@ class MembersPage extends StatefulWidget {
 class _MembersPageState extends State<MembersPage> {
   late Future<Map<String, List<String>>> _membersData;
   Map<String, bool> _memberSelections = {};
+  Map<String, bool> _groupSelections = {}; // グループ選択の状態を保持
 
   @override
   void initState() {
@@ -262,9 +262,7 @@ class _MembersPageState extends State<MembersPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('メンバー選択'),
-      ),
+      appBar: AppBar(title: const Text('メンバー選択')),
       body: FutureBuilder<Map<String, List<String>>>(
         future: _membersData,
         builder: (context, snapshot) {
@@ -273,6 +271,7 @@ class _MembersPageState extends State<MembersPage> {
             // Initialize selection map if empty
             if (_memberSelections.isEmpty) {
               members.forEach((group, memberList) {
+                _groupSelections[group] = false; // グループの選択状態を初期化
                 for (var member in memberList) {
                   _memberSelections['$group - $member'] = false;
                 }
@@ -282,12 +281,20 @@ class _MembersPageState extends State<MembersPage> {
             return ListView(
               children: [
                 for (var group in members.keys) ...[
-                  Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: Text(
+                  CheckboxListTile(
+                    // グループ選択のチェックボックス
+                    title: Text(
                       group,
                       style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
+                    value: _groupSelections[group] ?? false,
+                    onChanged: (bool? newValue) {
+                      setState(() {
+                        _groupSelections[group] = newValue!;
+                        // グループの選択状態に応じてメンバーの選択状態を更新
+                      });
+                    },
+                    controlAffinity: ListTileControlAffinity.leading,
                   ),
                   for (var member in members[group]!)
                     CheckboxListTile(
@@ -299,7 +306,9 @@ class _MembersPageState extends State<MembersPage> {
                         });
                       },
                       controlAffinity: ListTileControlAffinity.leading,
-                      contentPadding: const EdgeInsets.only(left: 40.0), // インデント
+                      contentPadding: const EdgeInsets.only(
+                        left: 40.0,
+                      ), // インデント
                     ),
                 ],
               ],
