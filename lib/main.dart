@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'listen_now_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
 import 'dart:convert';
 import 'package:flutter/services.dart' show rootBundle;
 
@@ -146,7 +148,7 @@ class _MyHomePageState extends State<MyHomePage> {
   Widget _getPage(int index) {
     switch (index) {
       case 0:
-        return const Center(child: Text('今すぐ聞く'));
+        return ListenNowPage();
       case 1:
         return const Center(child: Text('ダウンロード済み'));
       case 2:
@@ -261,7 +263,9 @@ class _MembersPageState extends State<MembersPage> {
       setState(() {
         _groupSelections.clear();
         groupSelectionsJson.forEach((key, value) {
-          _groupSelections[key] = value as bool;
+          if (value is bool) {
+            _groupSelections[key] = value;
+          }
         });
       });
     }
@@ -282,7 +286,9 @@ class _MembersPageState extends State<MembersPage> {
       setState(() {
         _memberSelections.clear();
         memberSelectionsJson.forEach((key, value) {
-          _memberSelections[key] = value as bool;
+          if (value is bool) {
+            _memberSelections[key] = value;
+          }
         });
       });
     }
