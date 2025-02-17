@@ -168,63 +168,52 @@ class _SettingsPageState extends State<SettingsPage> {
   @override
   void initState() {
     super.initState();
-    _loadThemeMode();
+    _loadSettings();
   }
 
-  Future<void> _loadThemeMode() async {
+  Future<void> _loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
       _darkModeEnabled = (prefs.getBool('darkMode') ?? false);
+      _notificationsEnabled = (prefs.getBool('notifications') ?? false);
     });
   }
 
-  Future<void> _saveThemeMode(bool value) async {
+  Future<void> _saveSettings() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('darkMode', value);
+    await prefs.setBool('darkMode', _darkModeEnabled);
+    await prefs.setBool('notifications', _notificationsEnabled);
   }
 
-  void _toggleGlobalNotifications(bool value) {
+  void _toggleNotifications(bool value) {
     setState(() {
       _notificationsEnabled = value;
     });
+    _saveSettings();
   }
 
   void _toggleDarkMode(bool value) {
     setState(() {
       _darkModeEnabled = value;
     });
-    _saveThemeMode(value);
+    _saveSettings();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.start,
-        crossAxisAlignment: CrossAxisAlignment.start,
+    return Scaffold(
+      appBar: AppBar(title: const Text('設定')),
+      body: ListView(
         children: <Widget>[
-          Padding(
-            padding: EdgeInsets.all(MediaQuery.of(context).size.width * 0.02),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text('通知:'),
-                Switch(
-                  value: _notificationsEnabled,
-                  onChanged: _toggleGlobalNotifications,
-                ),
-              ],
-            ),
+          SwitchListTile(
+            title: const Text('通知'),
+            value: _notificationsEnabled,
+            onChanged: _toggleNotifications,
           ),
-          Padding(
-            padding: EdgeInsets.all(MediaQuery.of(context).size.width * 0.02),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text('ダークモード:'),
-                Switch(value: _darkModeEnabled, onChanged: _toggleDarkMode),
-              ],
-            ),
+          SwitchListTile(
+            title: const Text('ダークモード'),
+            value: _darkModeEnabled,
+            onChanged: _toggleDarkMode,
           ),
           ElevatedButton(
             onPressed: () {
