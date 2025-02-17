@@ -70,33 +70,39 @@ class _ListenNowPageState extends State<ListenNowPage> {
       body: Column(
         children: [
           const Text('選択されたメンバー:'),
-          _selectedMembers.isEmpty
-              ? const Text('選択されたメンバーはいません')
-              : Expanded(
-                child: ListView.builder(
-                  shrinkWrap: true,
-                  itemCount: _selectedMembers.length,
-                  itemBuilder: (context, index) {
-                    return ListTile(
-                      title: Text(_selectedMembers[index].toString()),
-                    );
-                  },
-                ),
+          Expanded(
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _selectedMembers.isEmpty
+                      ? const Text('選択されたメンバーはいません')
+                      : Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: _selectedMembers
+                              .map((member) => Padding(
+                                    padding: const EdgeInsets.only(left: 16.0, top: 4.0, bottom: 4.0),
+                                    child: Text('・${member.toString()}'),
+                                  ))
+                              .toList(),
+                        ),
+                  const SizedBox(height: 16),
+                  const Text('選択されたグループ:'),
+                  _selectedGroups.isEmpty
+                      ? const Text('選択されたグループはいません')
+                      : Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: _selectedGroups
+                              .map((group) => Padding(
+                                    padding: const EdgeInsets.only(left: 16.0, top: 4.0, bottom: 4.0),
+                                    child: Text('・${group.toString()}'),
+                                  ))
+                              .toList(),
+                        ),
+                ],
               ),
-          const Text('選択されたグループ:'),
-          _selectedGroups.isEmpty
-              ? const Text('選択されたグループはいません')
-              : Expanded(
-                child: ListView.builder(
-                  shrinkWrap: true,
-                  itemCount: _selectedGroups.length,
-                  itemBuilder: (context, index) {
-                    return ListTile(
-                      title: Text(_selectedGroups[index].toString()),
-                    );
-                  },
-                ),
-              ),
+            ),
+          ),
         ],
       ),
     );
