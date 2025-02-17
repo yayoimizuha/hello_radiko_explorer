@@ -114,12 +114,15 @@ class _MyHomePageState extends State<MyHomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        backgroundColor:
+            widget.darkModeEnabled
+                ? const Color.fromARGB(255, 16, 74, 111)
+                : Colors.blueAccent,
         title: Text(
           widget.title,
           style:
               widget.darkModeEnabled
-                  ? const TextStyle(color: Colors.cyanAccent)
+                  ? const TextStyle(color: Color.fromARGB(255, 221, 144, 27))
                   : const TextStyle(color: Colors.lime),
         ),
       ),
