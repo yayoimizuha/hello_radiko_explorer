@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   runApp(const MyApp());
@@ -23,20 +24,15 @@ class MyApp extends StatelessWidget {
         ),
         useMaterial3: true,
       ),
-      home: MyHomePage(title: 'Hello!Project radiko', darkModeEnabled: false),
+      home: MyHomePage(title: 'Hello!Project radiko'),
     );
   }
 }
 
 class MyHomePage extends StatefulWidget {
-  const MyHomePage({
-    super.key,
-    required this.title,
-    required this.darkModeEnabled,
-  });
+  const MyHomePage({super.key, required this.title});
 
   final String title;
-  final bool darkModeEnabled;
 
   @override
   State<MyHomePage> createState() => _MyHomePageState();
@@ -50,7 +46,19 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   void initState() {
     super.initState();
-    _darkModeEnabled = widget.darkModeEnabled;
+    _loadThemeMode();
+  }
+
+  Future<void> _loadThemeMode() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _darkModeEnabled = (prefs.getBool('darkMode') ?? false);
+    });
+  }
+
+  Future<void> _saveThemeMode(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('darkMode', value);
   }
 
   void _onItemTapped(int index) {
@@ -69,6 +77,7 @@ class _MyHomePageState extends State<MyHomePage> {
     setState(() {
       _darkModeEnabled = value;
     });
+    _saveThemeMode(value);
   }
 
   @override
