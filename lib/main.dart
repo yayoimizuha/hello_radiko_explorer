@@ -18,10 +18,41 @@ void main() {
   runApp(const MyApp());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class MyApp extends StatefulWidget {
+  const MyApp({Key? key}) : super(key: key);
 
-  // これはアプリケーションのルートウィジェットです。
+  @override
+  _MyAppState createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  bool darkModeEnabled = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadThemeMode();
+  }
+
+  Future<void> _loadThemeMode() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      darkModeEnabled = (prefs.getBool('darkMode') ?? false);
+    });
+  }
+
+  Future<void> _saveThemeMode(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('darkMode', value);
+  }
+
+  void toggleDarkMode(bool value) {
+    setState(() {
+      darkModeEnabled = value;
+    });
+    _saveThemeMode(value);
+  }
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -37,15 +68,27 @@ class MyApp extends StatelessWidget {
         ),
         useMaterial3: true,
       ),
-      home: MyHomePage(title: 'Hello!Project radiko'),
+      themeMode: darkModeEnabled ? ThemeMode.dark : ThemeMode.light,
+      home: MyHomePage(
+        title: 'Hello!Project radiko',
+        toggleDarkMode: toggleDarkMode,
+        darkModeEnabled: darkModeEnabled,
+      ),
     );
   }
 }
 
 class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
+  const MyHomePage({
+    Key? key,
+    required this.title,
+    required this.toggleDarkMode,
+    required this.darkModeEnabled,
+  }) : super(key: key);
 
   final String title;
+  final Function(bool) toggleDarkMode;
+  final bool darkModeEnabled;
 
   @override
   State<MyHomePage> createState() => _MyHomePageState();
@@ -54,25 +97,6 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   int _selectedIndex = 0;
   bool _notificationsEnabled = false;
-  bool _darkModeEnabled = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadThemeMode();
-  }
-
-  Future<void> _loadThemeMode() async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _darkModeEnabled = (prefs.getBool('darkMode') ?? false);
-    });
-  }
-
-  Future<void> _saveThemeMode(bool value) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('darkMode', value);
-  }
 
   void _onItemTapped(int index) {
     setState(() {
@@ -86,56 +110,32 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
-  void _toggleDarkMode(bool value) {
-    setState(() {
-      _darkModeEnabled = value;
-    });
-    _saveThemeMode(value);
-  }
-
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-        useMaterial3: true,
-      ),
-      darkTheme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.deepPurple,
-          brightness: Brightness.dark,
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        title: Text(
+          widget.title,
+          style:
+              widget.darkModeEnabled
+                  ? const TextStyle(color: Colors.cyanAccent)
+                  : const TextStyle(color: Colors.lime),
         ),
-        useMaterial3: true,
       ),
-      themeMode: _darkModeEnabled ? ThemeMode.dark : ThemeMode.light,
-      home: Scaffold(
-        appBar: AppBar(
-          backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-          title: Text(
-            widget.title,
-            style:
-                _darkModeEnabled
-                    ? TextStyle(color: Colors.cyanAccent)
-                    : TextStyle(color: Colors.lime),
+      body: _getPage(_selectedIndex),
+      bottomNavigationBar: BottomNavigationBar(
+        items: const <BottomNavigationBarItem>[
+          BottomNavigationBarItem(icon: Icon(Icons.headphones), label: '今すぐ開く'),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.download),
+            label: 'ダウンロード済み',
           ),
-        ),
-        body: _getPage(_selectedIndex),
-        bottomNavigationBar: BottomNavigationBar(
-          items: const <BottomNavigationBarItem>[
-            BottomNavigationBarItem(
-              icon: Icon(Icons.headphones),
-              label: '今すぐ開く',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.download),
-              label: 'ダウンロード済み',
-            ),
-            BottomNavigationBarItem(icon: Icon(Icons.settings), label: '設定'),
-          ],
-          currentIndex: _selectedIndex,
-          selectedItemColor: Colors.amber[800],
-          onTap: _onItemTapped,
-        ),
+          BottomNavigationBarItem(icon: Icon(Icons.settings), label: '設定'),
+        ],
+        currentIndex: _selectedIndex,
+        selectedItemColor: Colors.amber[800],
+        onTap: _onItemTapped,
       ),
     );
   }
@@ -147,7 +147,7 @@ class _MyHomePageState extends State<MyHomePage> {
       case 1:
         return const Center(child: Text('ダウンロード済み'));
       case 2:
-        return SettingsPage();
+        return const SettingsPage();
       default:
         return const Center(child: Text('エラー'));
     }
@@ -163,7 +163,6 @@ class SettingsPage extends StatefulWidget {
 
 class _SettingsPageState extends State<SettingsPage> {
   bool _notificationsEnabled = false;
-  bool _darkModeEnabled = false;
 
   @override
   void initState() {
@@ -174,27 +173,18 @@ class _SettingsPageState extends State<SettingsPage> {
   Future<void> _loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
-      _darkModeEnabled = (prefs.getBool('darkMode') ?? false);
       _notificationsEnabled = (prefs.getBool('notifications') ?? false);
     });
   }
 
   Future<void> _saveSettings() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('darkMode', _darkModeEnabled);
     await prefs.setBool('notifications', _notificationsEnabled);
   }
 
   void _toggleNotifications(bool value) {
     setState(() {
       _notificationsEnabled = value;
-    });
-    _saveSettings();
-  }
-
-  void _toggleDarkMode(bool value) {
-    setState(() {
-      _darkModeEnabled = value;
     });
     _saveSettings();
   }
@@ -212,8 +202,16 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
           SwitchListTile(
             title: const Text('ダークモード'),
-            value: _darkModeEnabled,
-            onChanged: _toggleDarkMode,
+            value:
+                (context as Element)
+                    .findAncestorStateOfType<_MyAppState>()
+                    ?.darkModeEnabled ??
+                false,
+            onChanged: (bool value) {
+              (context as Element)
+                  .findAncestorStateOfType<_MyAppState>()
+                  ?.toggleDarkMode(value);
+            },
           ),
           ElevatedButton(
             onPressed: () {
