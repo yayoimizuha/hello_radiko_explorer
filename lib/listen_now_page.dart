@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
+
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ListenNowPage extends StatefulWidget {
   const ListenNowPage({Key? key}) : super(key: key);
@@ -10,8 +11,8 @@ class ListenNowPage extends StatefulWidget {
 }
 
 class _ListenNowPageState extends State<ListenNowPage> {
-  List<dynamic> _selectedMembers = [];
-  List<dynamic> _selectedGroups = [];
+  List<String> _selectedMembers = [];
+  List<String> _selectedGroups = [];
 
   @override
   void initState() {
@@ -23,8 +24,8 @@ class _ListenNowPageState extends State<ListenNowPage> {
     try {
       final prefs = await SharedPreferences.getInstance();
       final memberSelectionsString =
-          prefs.getString('memberSelections') ?? '[]';
-      final groupSelectionsString = prefs.getString('groupSelections') ?? '[]';
+          prefs.getString('memberSelections') ?? '{}';
+      final groupSelectionsString = prefs.getString('groupSelections') ?? '{}';
 
       print('Debug: memberSelectionsString = $memberSelectionsString');
       print('Debug: groupSelectionsString = $groupSelectionsString');
@@ -32,27 +33,19 @@ class _ListenNowPageState extends State<ListenNowPage> {
       final memberSelections = json.decode(memberSelectionsString);
       final groupSelections = json.decode(groupSelectionsString);
 
-      print('Debug: memberSelections type = ${memberSelections.runtimeType}');
-      print('Debug: groupSelections type = ${groupSelections.runtimeType}');
-
-      // 型チェックと変換を行う
-      List<dynamic> memberList =
-          memberSelections is List
-              ? memberSelections
-              : memberSelections is Map
-              ? [memberSelections]
-              : [];
-
-      List<dynamic> groupList =
-          groupSelections is List
-              ? groupSelections
-              : groupSelections is Map
-              ? [groupSelections]
-              : [];
+    List<String> extractSelectedKeys(dynamic selections) {
+      if (selections is Map<String, dynamic>) {
+        return selections.entries
+            .where((entry) => entry.value == true)
+            .map((entry) => entry.key)
+            .toList();
+      }
+      return [];
+    }
 
       setState(() {
-        _selectedMembers = memberList;
-        _selectedGroups = groupList;
+        _selectedMembers = extractSelectedKeys(memberSelections);
+        _selectedGroups = extractSelectedKeys(groupSelections);
       });
     } catch (e) {
       print('Error loading selections: $e');
@@ -71,36 +64,37 @@ class _ListenNowPageState extends State<ListenNowPage> {
         children: [
           const Text('選択されたメンバー:'),
           Expanded(
-            child: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _selectedMembers.isEmpty
-                      ? const Text('選択されたメンバーはいません')
-                      : Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: _selectedMembers
-                              .map((member) => Padding(
-                                    padding: const EdgeInsets.only(left: 16.0, top: 4.0, bottom: 4.0),
-                                    child: Text('・${member.toString()}'),
-                                  ))
-                              .toList(),
-                        ),
-                  const SizedBox(height: 16),
-                  const Text('選択されたグループ:'),
-                  _selectedGroups.isEmpty
-                      ? const Text('選択されたグループはいません')
-                      : Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: _selectedGroups
-                              .map((group) => Padding(
-                                    padding: const EdgeInsets.only(left: 16.0, top: 4.0, bottom: 4.0),
-                                    child: Text('・${group.toString()}'),
-                                  ))
-                              .toList(),
-                        ),
-                ],
-              ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('選択されたメンバー:'),
+                _selectedMembers.isEmpty
+                    ? const Text('選択されたメンバーはいません')
+                    : Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: _selectedMembers
+                            .map((member) => Padding(
+                                  padding: const EdgeInsets.only(
+                                      left: 16.0, top: 4.0, bottom: 4.0),
+                                  child: Text('・$member'),
+                                ))
+                            .toList(),
+                      ),
+                const SizedBox(height: 16),
+                const Text('選択されたグループ:'),
+                _selectedGroups.isEmpty
+                    ? const Text('選択されたグループはいません')
+                    : Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: _selectedGroups
+                            .map((group) => Padding(
+                                  padding: const EdgeInsets.only(
+                                      left: 16.0, top: 4.0, bottom: 4.0),
+                                  child: Text('・$group'),
+                                ))
+                            .toList(),
+                      ),
+              ],
             ),
           ),
         ],
