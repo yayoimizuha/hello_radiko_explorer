@@ -1,5 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
+import 'package:flutter/services.dart' show rootBundle;
+
+Future<Map<String, List<String>>> loadMembers() async {
+  final String jsonString = await rootBundle.loadString('lib/members.json');
+  final dynamic jsonResponse = jsonDecode(jsonString);
+  return (jsonResponse as Map<String, dynamic>).map<String, List<String>>((key, value) {
+    return MapEntry(key, List<String>.from(value as List));
+  });
+}
 
 void main() {
   runApp(const MyApp());
@@ -134,43 +144,173 @@ class _MyHomePageState extends State<MyHomePage> {
       case 1:
         return const Center(child: Text('ダウンロード済み'));
       case 2:
-        return Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.start,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              Padding(
-                padding: EdgeInsets.all(
-                  MediaQuery.of(context).size.width * 0.02,
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text('通知:'),
-                    Switch(
-                      value: _notificationsEnabled,
-                      onChanged: _toggleGlobalNotifications,
-                    ),
-                  ],
-                ),
-              ),
-              Padding(
-                padding: EdgeInsets.all(
-                  MediaQuery.of(context).size.width * 0.02,
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text('ダークモード:'),
-                    Switch(value: _darkModeEnabled, onChanged: _toggleDarkMode),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        );
+        return SettingsPage();
       default:
         return const Center(child: Text('エラー'));
     }
+  }
+}
+
+class SettingsPage extends StatefulWidget {
+  const SettingsPage({Key? key}) : super(key: key);
+
+  @override
+  State<SettingsPage> createState() => _SettingsPageState();
+}
+
+class _SettingsPageState extends State<SettingsPage> {
+  bool _notificationsEnabled = false;
+  bool _darkModeEnabled = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadThemeMode();
+  }
+
+  Future<void> _loadThemeMode() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _darkModeEnabled = (prefs.getBool('darkMode') ?? false);
+    });
+  }
+
+  Future<void> _saveThemeMode(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('darkMode', value);
+  }
+
+  void _toggleGlobalNotifications(bool value) {
+    setState(() {
+      _notificationsEnabled = value;
+    });
+  }
+
+  void _toggleDarkMode(bool value) {
+    setState(() {
+      _darkModeEnabled = value;
+    });
+    _saveThemeMode(value);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Padding(
+            padding: EdgeInsets.all(
+              MediaQuery.of(context).size.width * 0.02,
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('通知:'),
+                Switch(
+                  value: _notificationsEnabled,
+                  onChanged: _toggleGlobalNotifications,
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: EdgeInsets.all(
+              MediaQuery.of(context).size.width * 0.02,
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('ダークモード:'),
+                Switch(value: _darkModeEnabled, onChanged: _toggleDarkMode),
+              ],
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => MembersPage()),
+              );
+            },
+            child: const Text('メンバー選択'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class MembersPage extends StatefulWidget {
+  const MembersPage({Key? key}) : super(key: key);
+
+  @override
+  State<MembersPage> createState() => _MembersPageState();
+}
+
+class _MembersPageState extends State<MembersPage> {
+  late Future<Map<String, List<String>>> _membersData;
+  Map<String, bool> _memberSelections = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _membersData = loadMembers();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('メンバー選択'),
+      ),
+      body: FutureBuilder<Map<String, List<String>>>(
+        future: _membersData,
+        builder: (context, snapshot) {
+          if (snapshot.hasData) {
+            final members = snapshot.data!;
+            // Initialize selection map if empty
+            if (_memberSelections.isEmpty) {
+              members.forEach((group, memberList) {
+                for (var member in memberList) {
+                  _memberSelections['$group - $member'] = false;
+                }
+              });
+            }
+
+            return ListView(
+              children: [
+                for (var group in members.keys) ...[
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Text(
+                      group,
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  for (var member in members[group]!)
+                    CheckboxListTile(
+                      title: Text(member),
+                      value: _memberSelections['$group - $member'] ?? false,
+                      onChanged: (bool? newValue) {
+                        setState(() {
+                          _memberSelections['$group - $member'] = newValue!;
+                        });
+                      },
+                      controlAffinity: ListTileControlAffinity.leading,
+                      contentPadding: const EdgeInsets.only(left: 40.0), // インデント
+                    ),
+                ],
+              ],
+            );
+          } else if (snapshot.hasError) {
+            return Center(child: Text('エラー: ${snapshot.error}'));
+          } else {
+            return const Center(child: CircularProgressIndicator());
+          }
+        },
+      ),
+    );
   }
 }
