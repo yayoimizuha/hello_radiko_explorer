@@ -19,7 +19,7 @@ void main() {
 }
 
 class MyApp extends StatefulWidget {
-  const MyApp({Key? key}) : super(key: key);
+  const MyApp({super.key});
 
   @override
   _MyAppState createState() => _MyAppState();
@@ -80,11 +80,11 @@ class _MyAppState extends State<MyApp> {
 
 class MyHomePage extends StatefulWidget {
   const MyHomePage({
-    Key? key,
+    super.key,
     required this.title,
     required this.toggleDarkMode,
     required this.darkModeEnabled,
-  }) : super(key: key);
+  });
 
   final String title;
   final Function(bool) toggleDarkMode;
@@ -147,7 +147,10 @@ class _MyHomePageState extends State<MyHomePage> {
       case 1:
         return const Center(child: Text('ダウンロード済み'));
       case 2:
-        return const SettingsPage();
+        return SettingsPage(
+          darkModeEnabled: widget.darkModeEnabled,
+          toggleDarkMode: widget.toggleDarkMode,
+        );
       default:
         return const Center(child: Text('エラー'));
     }
@@ -155,7 +158,13 @@ class _MyHomePageState extends State<MyHomePage> {
 }
 
 class SettingsPage extends StatefulWidget {
-  const SettingsPage({Key? key}) : super(key: key);
+  final bool darkModeEnabled;
+  final ValueChanged<bool> toggleDarkMode;
+  const SettingsPage({
+    super.key,
+    required this.darkModeEnabled,
+    required this.toggleDarkMode,
+  });
 
   @override
   State<SettingsPage> createState() => _SettingsPageState();
@@ -202,16 +211,8 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
           SwitchListTile(
             title: const Text('ダークモード'),
-            value:
-                (context as Element)
-                    .findAncestorStateOfType<_MyAppState>()
-                    ?.darkModeEnabled ??
-                false,
-            onChanged: (bool value) {
-              (context as Element)
-                  .findAncestorStateOfType<_MyAppState>()
-                  ?.toggleDarkMode(value);
-            },
+            value: widget.darkModeEnabled,
+            onChanged: widget.toggleDarkMode,
           ),
           ElevatedButton(
             onPressed: () {
@@ -229,7 +230,7 @@ class _SettingsPageState extends State<SettingsPage> {
 }
 
 class MembersPage extends StatefulWidget {
-  const MembersPage({Key? key}) : super(key: key);
+  const MembersPage({super.key});
 
   @override
   State<MembersPage> createState() => _MembersPageState();
@@ -237,13 +238,35 @@ class MembersPage extends StatefulWidget {
 
 class _MembersPageState extends State<MembersPage> {
   late Future<Map<String, List<String>>> _membersData;
-  Map<String, bool> _memberSelections = {};
-  Map<String, bool> _groupSelections = {}; // グループ選択の状態を保持
+  final Map<String, bool> _memberSelections = {};
+  final Map<String, bool> _groupSelections = {}; // グループ選択の状態を保持
 
   @override
   void initState() {
     super.initState();
     _membersData = loadMembers();
+    _loadMemberSelections();
+  }
+
+  Future<void> _loadMemberSelections() async {
+    final prefs = await SharedPreferences.getInstance();
+    final String? memberSelectionsString = prefs.getString('memberSelections');
+    if (memberSelectionsString != null) {
+      final Map<String, dynamic> memberSelectionsJson =
+          jsonDecode(memberSelectionsString) as Map<String, dynamic>;
+      setState(() {
+        _memberSelections.clear();
+        memberSelectionsJson.forEach((key, value) {
+          _memberSelections[key] = value as bool;
+        });
+      });
+    }
+  }
+
+  Future<void> _saveMemberSelections() async {
+    final prefs = await SharedPreferences.getInstance();
+    final String memberSelectionsString = jsonEncode(_memberSelections);
+    await prefs.setString('memberSelections', memberSelectionsString);
   }
 
   @override
@@ -291,6 +314,7 @@ class _MembersPageState extends State<MembersPage> {
                         setState(() {
                           _memberSelections['$group - $member'] = newValue!;
                         });
+                        _saveMemberSelections();
                       },
                       controlAffinity: ListTileControlAffinity.leading,
                       contentPadding: const EdgeInsets.only(
