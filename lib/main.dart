@@ -246,6 +246,28 @@ class _MembersPageState extends State<MembersPage> {
     super.initState();
     _membersData = loadMembers();
     _loadMemberSelections();
+    _loadGroupSelections();
+  }
+
+  Future<void> _loadGroupSelections() async {
+    final prefs = await SharedPreferences.getInstance();
+    final String? groupSelectionsString = prefs.getString('groupSelections');
+    if (groupSelectionsString != null) {
+      final Map<String, dynamic> groupSelectionsJson =
+          jsonDecode(groupSelectionsString) as Map<String, dynamic>;
+      setState(() {
+        _groupSelections.clear();
+        groupSelectionsJson.forEach((key, value) {
+          _groupSelections[key] = value as bool;
+        });
+      });
+    }
+  }
+
+  Future<void> _saveGroupSelections() async {
+    final prefs = await SharedPreferences.getInstance();
+    final String groupSelectionsString = jsonEncode(_groupSelections);
+    await prefs.setString('groupSelections', groupSelectionsString);
   }
 
   Future<void> _loadMemberSelections() async {
@@ -303,6 +325,7 @@ class _MembersPageState extends State<MembersPage> {
                         _groupSelections[group] = newValue!;
                         // グループの選択状態に応じてメンバーの選択状態を更新
                       });
+                      _saveGroupSelections();
                     },
                     controlAffinity: ListTileControlAffinity.leading,
                   ),
