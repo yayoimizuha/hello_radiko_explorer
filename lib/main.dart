@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:hello_radiko_explorer/firebase_options.dart';
 import 'listen_now_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
+import 'package:firebase_core/firebase_core.dart';
 import 'dart:convert';
 import 'package:flutter/services.dart' show rootBundle;
 
@@ -16,7 +17,9 @@ Future<Map<String, List<String>>> loadMembers() async {
   });
 }
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   runApp(const MyApp());
 }
 
@@ -60,10 +63,12 @@ class _MyAppState extends State<MyApp> {
     return MaterialApp(
       title: 'Flutter Demo',
       theme: ThemeData(
+        fontFamily: 'MPLUS2',
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigoAccent),
         useMaterial3: true,
       ),
       darkTheme: ThemeData(
+        fontFamily: 'MPLUS2',
         colorScheme: ColorScheme.fromSeed(
           seedColor: Colors.lightBlue,
           brightness: Brightness.dark,
@@ -314,7 +319,7 @@ class _MembersPageState extends State<MembersPage> {
               members.forEach((group, memberList) {
                 _groupSelections[group] = false; // グループの選択状態を初期化
                 for (var member in memberList) {
-                  _memberSelections['$group - $member'] = false;
+                  _memberSelections[member] = false;
                 }
               });
             }
@@ -341,10 +346,10 @@ class _MembersPageState extends State<MembersPage> {
                   for (var member in members[group]!)
                     CheckboxListTile(
                       title: Text(member),
-                      value: _memberSelections['$group - $member'] ?? false,
+                      value: _memberSelections[member] ?? false,
                       onChanged: (bool? newValue) {
                         setState(() {
-                          _memberSelections['$group - $member'] = newValue!;
+                          _memberSelections[member] = newValue!;
                         });
                         _saveMemberSelections();
                       },

@@ -64,6 +64,7 @@ flutter:
   # To add assets to your application, add an assets section, like this:
   assets:
     - lib/members.json
+    - lib/MPLUS2-Regular.ttf
   #   - images/a_dot_burr.jpeg
   #   - images/a_dot_ham.jpeg
 
@@ -92,3 +93,7 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+  fonts:
+    - family: MPLUS2
+      fonts:
+        - asset: lib/MPLUS2-Regular.ttf
