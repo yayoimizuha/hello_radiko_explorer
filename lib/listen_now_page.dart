@@ -5,6 +5,7 @@ import 'dart:convert';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'program_detail_page.dart';
 
 class ListenNowPage extends StatefulWidget {
   const ListenNowPage({super.key});
@@ -191,8 +192,8 @@ class _ListenNowPageState extends State<ListenNowPage> {
           prefs.getString('memberSelections') ?? '{}';
       final groupSelectionsString = prefs.getString('groupSelections') ?? '{}';
 
-      print('Debug: memberSelectionsString = $memberSelectionsString');
-      print('Debug: groupSelectionsString = $groupSelectionsString');
+      // print('Debug: memberSelectionsString = $memberSelectionsString');
+      // print('Debug: groupSelectionsString = $groupSelectionsString');
 
       final memberSelections = json.decode(memberSelectionsString);
       final groupSelections = json.decode(groupSelectionsString);
@@ -272,30 +273,12 @@ class _ListenNowPageState extends State<ListenNowPage> {
             ),
             child: GestureDetector(
               onTap: () {
-                showDialog(
-                  context: context,
-                  builder: (BuildContext context) {
-                    return AlertDialog(
-                      title: Text(program.$1.title),
-                      content: SingleChildScrollView(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('詳細: ${program.$1.desc ?? '情報なし'}'),
-                            Text('情報: ${program.$1.info ?? '情報なし'}'),
-                          ],
-                        ),
-                      ),
-                      actions: <Widget>[
-                        TextButton(
-                          child: const Text('閉じる'),
-                          onPressed: () {
-                            Navigator.of(context).pop();
-                          },
-                        ),
-                      ],
-                    );
-                  },
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder:
+                        (context) => ProgramDetailPage(program: program.$1),
+                  ),
                 );
               },
               child: Container(
