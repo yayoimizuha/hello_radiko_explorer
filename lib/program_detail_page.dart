@@ -31,9 +31,9 @@ class ProgramDetailPage extends StatelessWidget {
                 final webUrl =
                     'https://radiko.jp/#!/ts/${program.radioChannel.id}/${DateFormat('yyyyMMddHHmmss').format(program.ft)}';
 
-                if (await canLaunchUrl(Uri.parse(radikoUrl))) {
-                  await launchUrl(Uri.parse(radikoUrl));
-                } else {
+                
+                await launchUrl(Uri.parse(radikoUrl));
+                
                   if (await canLaunchUrl(Uri.parse(webUrl))) {
                     await launchUrl(Uri.parse(webUrl));
                   } else {
@@ -41,7 +41,7 @@ class ProgramDetailPage extends StatelessWidget {
                       const SnackBar(content: Text('Radikoアプリもブラウザも開けませんでした。')),
                     );
                   }
-                }
+                
               },
             ),
           ],
