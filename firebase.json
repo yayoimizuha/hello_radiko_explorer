@@ -1,1 +1,28 @@
-{"flutter":{"platforms":{"dart":{"lib/firebase_options.dart":{"projectId":"hello-radiko","configurations":{"android":"1:872135031945:android:f3617a9b601247762dda58","ios":"1:872135031945:ios:b9cb21d15844df7f2dda58","web":"1:872135031945:web:40402bd368daf0af2dda58","windows":"1:872135031945:web:58b04330f933ebd72dda58"}}}}}}
+{
+  "flutter": {
+    "platforms": {
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "hello-radiko",
+          "configurations": {
+            "android": "1:872135031945:android:f3617a9b601247762dda58",
+            "ios": "1:872135031945:ios:b9cb21d15844df7f2dda58",
+            "web": "1:872135031945:web:40402bd368daf0af2dda58",
+            "windows": "1:872135031945:web:58b04330f933ebd72dda58"
+          }
+        }
+      }
+    }
+  },
+  "hosting": {
+    "source": ".",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "frameworksBackend": {
+      "region": "asia-east1"
+    }
+  }
+}
