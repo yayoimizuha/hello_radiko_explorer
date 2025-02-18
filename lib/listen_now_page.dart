@@ -151,8 +151,9 @@ class _ListenNowPageState extends State<ListenNowPage> {
     _loadSelectedMembersAndGroups().then((_) {
       // 現在時刻を含む番組のインデックスを検索
       final now = DateTime.now();
-      int initialIndex = _allRadioPrograms.indexWhere((program) =>
-          now.isAfter(program.$1.ft) && now.isBefore(program.$1.to));
+      int initialIndex = _allRadioPrograms.indexWhere(
+        (program) => now.isAfter(program.$1.ft) && now.isBefore(program.$1.to),
+      );
 
       // 該当する番組がない場合は、最初の番組または最後の番組にする
       if (initialIndex == -1) {
@@ -249,6 +250,7 @@ class _ListenNowPageState extends State<ListenNowPage> {
     return Scaffold(
       appBar: AppBar(title: const Text('今すぐ聞く')),
       body: ListView.builder(
+        controller: _scrollController,
         itemCount: _allRadioPrograms.length,
         itemBuilder: (context, index) {
           final program = _allRadioPrograms[index];
