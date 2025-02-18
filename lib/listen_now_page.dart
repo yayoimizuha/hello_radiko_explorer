@@ -142,11 +142,36 @@ class _ListenNowPageState extends State<ListenNowPage> {
   List<String> _selectedGroups = [];
   final List<String> _allSelectedItems = [];
   List<(RadioProgram, List<String>)> _allRadioPrograms = [];
+  late ScrollController _scrollController;
 
   @override
   void initState() {
     super.initState();
-    _loadSelectedMembersAndGroups();
+    _scrollController = ScrollController();
+    _loadSelectedMembersAndGroups().then((_) {
+      // 現在時刻を含む番組のインデックスを検索
+      final now = DateTime.now();
+      int initialIndex = _allRadioPrograms.indexWhere((program) =>
+          now.isAfter(program.$1.ft) && now.isBefore(program.$1.to));
+
+      // 該当する番組がない場合は、最初の番組または最後の番組にする
+      if (initialIndex == -1) {
+        if (_allRadioPrograms.isNotEmpty) {
+          initialIndex = 0; // または _allRadioPrograms.length - 1
+        }
+      }
+
+      // スクロール位置を調整
+      if (initialIndex != -1) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _scrollController.animateTo(
+            initialIndex * 110, // 110は番組コンテナの高さ
+            duration: const Duration(milliseconds: 500),
+            curve: Curves.easeInOut,
+          );
+        });
+      }
+    });
   }
 
   Future<void> _loadSelectedMembersAndGroups() async {
@@ -204,7 +229,7 @@ class _ListenNowPageState extends State<ListenNowPage> {
         }
         temp1 = element.$1;
       }
-      programs_2.sort((a, b) => a.$1.ft.compareTo(b.$1.ft));
+      programs_2.sort((a, b) => b.$1.ft.compareTo(a.$1.ft));
 
       setState(() {
         _allRadioPrograms = programs_2;
@@ -236,7 +261,18 @@ class _ListenNowPageState extends State<ListenNowPage> {
             ),
             child: Container(
               decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey.shade800, width: 1),
+                border: Border.all(
+                  color:
+                      DateTime.now().isAfter(program.$1.ft) &&
+                              DateTime.now().isBefore(program.$1.to)
+                          ? Colors.pink.shade200
+                          : Colors.grey.shade800,
+                  width:
+                      DateTime.now().isAfter(program.$1.ft) &&
+                              DateTime.now().isBefore(program.$1.to)
+                          ? 2
+                          : 1,
+                ),
               ),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -279,11 +315,15 @@ class _ListenNowPageState extends State<ListenNowPage> {
                         ),
                         // const SizedBox(height: 4),
                         // 出演者リスト
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                        Wrap(
                           children:
                               program.$2
-                                  .map((member) => Text('・$member'))
+                                  .map(
+                                    (member) => SizedBox(
+                                      // width: 150, // 幅を調整
+                                      child: Text('・$member    '),
+                                    ),
+                                  )
                                   .toList(),
                         ),
                       ],
