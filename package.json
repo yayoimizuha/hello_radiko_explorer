@@ -1,0 +1,15 @@
+{
+    "name": "firebase-tools-example",
+    "version": "1.0.0",
+    "description": "A simple project to use firebase-tools",
+    "scripts": {
+      "deploy": "firebase deploy",
+      "login": "firebase login",
+      "init": "firebase init"
+    },
+    "dependencies": {},
+    "devDependencies": {
+      "firebase-tools": "^13.31.1"
+    },
+    "author": ""
+  }
