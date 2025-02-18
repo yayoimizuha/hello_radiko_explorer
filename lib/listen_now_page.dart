@@ -1,9 +1,10 @@
+import 'dart:math';
+import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'dart:convert';
-// import 'package:firebase_core/firebase_core.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:image_network/image_network.dart';
 
 class ListenNowPage extends StatefulWidget {
   const ListenNowPage({super.key});
@@ -155,10 +156,18 @@ class _ListenNowPageState extends State<ListenNowPage> {
         (program) => now.isAfter(program.$1.ft) && now.isBefore(program.$1.to),
       );
 
-      // 該当する番組がない場合は、最初の番組または最後の番組にする
+      // 該当する番組がない場合は、次に始まる番組にする
       if (initialIndex == -1) {
-        if (_allRadioPrograms.isNotEmpty) {
-          initialIndex = 0; // または _allRadioPrograms.length - 1
+        // 現在時刻より後の番組の中で、最も近い番組のインデックスを取得
+        final now = DateTime.now();
+        int nextIndex = _allRadioPrograms.indexWhere(
+          (program) => program.$1.ft.isBefore(now),
+        );
+        if (nextIndex != -1) {
+          initialIndex = nextIndex - 1;
+        } else if (_allRadioPrograms.isNotEmpty) {
+          // それでも該当する番組がない場合は、最初の番組にする
+          initialIndex = 0;
         }
       }
 
@@ -261,77 +270,108 @@ class _ListenNowPageState extends State<ListenNowPage> {
               top: 4.0,
               bottom: 4.0,
             ),
-            child: Container(
-              decoration: BoxDecoration(
-                border: Border.all(
-                  color:
-                      DateTime.now().isAfter(program.$1.ft) &&
-                              DateTime.now().isBefore(program.$1.to)
-                          ? Colors.pink.shade200
-                          : Colors.grey.shade800,
-                  width:
-                      DateTime.now().isAfter(program.$1.ft) &&
-                              DateTime.now().isBefore(program.$1.to)
-                          ? 2
-                          : 1,
-                ),
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // 画像
-                  ImageNetwork(
-                    image:
-                        program.$1.img ??
-                        'https://via.placeholder.com/150', // デフォルト画像
-                    width: 160,
-                    height: 100,
-                    // fitAndroidIos: BoxFit.cover,
-                    duration: 1000,
-                    curve: Curves.easeIn,
-                    onPointer: false,
-                    debugPrint: false,
-                  ),
-                  const SizedBox(width: 16),
-                  // 番組情報
-                  Expanded(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      spacing: 2.4,
-
-                      children: [
-                        Text(
-                          '${program.$1.ft.month}月${program.$1.ft.day}日 ${program.$1.ft.hour.toString().padLeft(2, '0')}時${program.$1.ft.minute.toString().padLeft(2, '0')}分',
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey,
-                          ),
+            child: GestureDetector(
+              onTap: () {
+                showDialog(
+                  context: context,
+                  builder: (BuildContext context) {
+                    return AlertDialog(
+                      title: Text(program.$1.title),
+                      content: SingleChildScrollView(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('詳細: ${program.$1.desc ?? '情報なし'}'),
+                            Text('情報: ${program.$1.info ?? '情報なし'}'),
+                          ],
                         ),
-                        Text(
-                          program.$1.title,
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        // const SizedBox(height: 4),
-                        // 出演者リスト
-                        Wrap(
-                          children:
-                              program.$2
-                                  .map(
-                                    (member) => SizedBox(
-                                      // width: 150, // 幅を調整
-                                      child: Text('・$member    '),
-                                    ),
-                                  )
-                                  .toList(),
+                      ),
+                      actions: <Widget>[
+                        TextButton(
+                          child: const Text('閉じる'),
+                          onPressed: () {
+                            Navigator.of(context).pop();
+                          },
                         ),
                       ],
-                    ),
+                    );
+                  },
+                );
+              },
+              child: Container(
+                decoration: BoxDecoration(
+                  border: Border.all(
+                    color:
+                        DateTime.now().isAfter(program.$1.ft) &&
+                                DateTime.now().isBefore(program.$1.to)
+                            ? Colors.pink.shade200
+                            : Colors.grey.shade800,
+                    width:
+                        DateTime.now().isAfter(program.$1.ft) &&
+                                DateTime.now().isBefore(program.$1.to)
+                            ? 2
+                            : 1,
                   ),
-                ],
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // 画像
+                    CachedNetworkImage(
+                      imageUrl:
+                          "https://getimagebase64-rnfi7uy4qq-uc.a.run.app/getImageBase64?url=${program.$1.img}",
+                      width: 160,
+                      height: 100,
+                      placeholder:
+                          (context, url) => const CircularProgressIndicator(),
+                      errorWidget:
+                          (context, url, error) => Image.network(
+                            'https://via.assets.so/img.jpg?w=480&h=300&tc=blue&bg=#cecece', // デフォルト画像
+                            width: 160,
+                            height: 100,
+                          ),
+                    ),
+                    const SizedBox(width: 16),
+                    // 番組情報
+                    Expanded(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        spacing: 2.4,
+
+                        children: [
+                          Text(
+                            '${program.$1.ft.month}月${program.$1.ft.day}日 ${program.$1.ft.hour.toString().padLeft(2, '0')}時${program.$1.ft.minute.toString().padLeft(2, '0')}分',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey,
+                            ),
+                          ),
+                          Text(
+                            program.$1.title,
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          // const SizedBox(height: 4),
+                          // 出演者リスト
+                          Wrap(
+                            children:
+                                program.$2
+                                    .map(
+                                      (member) => SizedBox(
+                                        // width: 150, // 幅を調整
+                                        child: Text('・$member    '),
+                                      ),
+                                    )
+                                    .toList(),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           );
