@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
-import 'package:firebase_core/firebase_core.dart';
+// import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:image_network/image_network.dart';
 
 class ListenNowPage extends StatefulWidget {
-  const ListenNowPage({Key? key}) : super(key: key);
+  const ListenNowPage({super.key});
 
   @override
   State<ListenNowPage> createState() => _ListenNowPageState();
@@ -18,6 +19,7 @@ class RadioProgram {
   final DateTime to;
   final int dur;
   final String title;
+  final String? img;
   final String? info;
   final String? desc;
   final String? pfm;
@@ -31,6 +33,7 @@ class RadioProgram {
     required this.to,
     required this.dur,
     required this.title,
+    this.img,
     this.info,
     this.desc,
     this.pfm,
@@ -48,6 +51,7 @@ class RadioProgram {
       to: (json['to'] as Timestamp).toDate(),
       dur: json['dur'],
       title: json['title'],
+      img: json['img'],
       info: json['info'],
       desc: json['desc'],
       pfm: json['pfm'],
@@ -106,7 +110,7 @@ class OnAirMusic {
   }
 }
 
-Future<List<RadioProgram>> getFirebaseStruct(String name) async {
+Future<List<(RadioProgram, String)>> getFirebaseStruct(String name) async {
   try {
     FirebaseFirestore firestore = FirebaseFirestore.instance;
     CollectionReference programsCollection = firestore.collection(
@@ -117,10 +121,10 @@ Future<List<RadioProgram>> getFirebaseStruct(String name) async {
 
     if (querySnapshot.docs.isNotEmpty) {
       // ドキュメントが複数存在する場合は、すべてのドキュメントをリストで返す
-      List<RadioProgram> programs = [];
+      List<(RadioProgram, String)> programs = [];
       for (var doc in querySnapshot.docs) {
         Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
-        programs.add(RadioProgram.fromJson(data));
+        programs.add((RadioProgram.fromJson(data), name));
       }
       return programs;
     } else {
@@ -137,7 +141,7 @@ class _ListenNowPageState extends State<ListenNowPage> {
   List<String> _selectedMembers = [];
   List<String> _selectedGroups = [];
   final List<String> _allSelectedItems = [];
-  List<RadioProgram> _allRadioPrograms = [];
+  List<(RadioProgram, List<String>)> _allRadioPrograms = [];
 
   @override
   void initState() {
@@ -175,17 +179,37 @@ class _ListenNowPageState extends State<ListenNowPage> {
         _allSelectedItems.addAll(_selectedGroups);
         _allSelectedItems.addAll(_selectedMembers);
       });
+      if (!mounted) return;
 
       // _allSelectedItems の内容を一つずつ getFirebaseStruct に与えて、その戻り値を _allRadioPrograms に入力
-      List<RadioProgram> programs = [];
+      List<(RadioProgram, String)> programs_1 = [];
       for (var item in _allSelectedItems) {
-        List<RadioProgram> radioPrograms = await getFirebaseStruct(item);
-        programs.addAll(radioPrograms);
+        List<(RadioProgram, String)> radioPrograms = await getFirebaseStruct(
+          item,
+        );
+        programs_1.addAll(radioPrograms);
       }
+      programs_1.sort((a, b) => a.$1.id.compareTo(b.$1.id));
+      List<(RadioProgram, List<String>)> programs_2 = [];
+      RadioProgram? temp1 = null;
+      for (var element in programs_1) {
+        if (temp1 != null) {
+          if (element.$1.id == temp1.id) {
+            programs_2.last.$2.add(element.$2);
+          } else {
+            programs_2.add((element.$1, [element.$2]));
+          }
+        } else {
+          programs_2.add((element.$1, [element.$2]));
+        }
+        temp1 = element.$1;
+      }
+      programs_2.sort((a, b) => a.$1.ft.compareTo(b.$1.ft));
 
       setState(() {
-        _allRadioPrograms = programs;
+        _allRadioPrograms = programs_2;
       });
+      if (!mounted) return;
     } catch (e) {
       print('Error loading selections: $e');
       setState(() {
@@ -204,18 +228,69 @@ class _ListenNowPageState extends State<ListenNowPage> {
         itemBuilder: (context, index) {
           final program = _allRadioPrograms[index];
           return Padding(
-            padding: const EdgeInsets.only(left: 16.0, top: 4.0, bottom: 4.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('・チャンネル: ${program.radioChannel.name}'),
-                Text('・タイトル: ${program.title}'),
-                Text('・放送開始時間: ${program.ft}'),
-                Text('・info: ${program.info ?? 'なし'}'),
-                Text('・desc: ${program.desc ?? 'なし'}'),
-                Text('・pfm: ${program.pfm ?? 'なし'}'),
-                const SizedBox(height: 8),
-              ],
+            padding: const EdgeInsets.only(
+              left: 16.0,
+              right: 16.0,
+              top: 4.0,
+              bottom: 4.0,
+            ),
+            child: Container(
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.grey.shade800, width: 1),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // 画像
+                  ImageNetwork(
+                    image:
+                        program.$1.img ??
+                        'https://via.placeholder.com/150', // デフォルト画像
+                    width: 160,
+                    height: 100,
+                    // fitAndroidIos: BoxFit.cover,
+                    duration: 1000,
+                    curve: Curves.easeIn,
+                    onPointer: false,
+                    debugPrint: false,
+                  ),
+                  const SizedBox(width: 16),
+                  // 番組情報
+                  Expanded(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      spacing: 2.4,
+
+                      children: [
+                        Text(
+                          '${program.$1.ft.month}月${program.$1.ft.day}日 ${program.$1.ft.hour.toString().padLeft(2, '0')}時${program.$1.ft.minute.toString().padLeft(2, '0')}分',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey,
+                          ),
+                        ),
+                        Text(
+                          program.$1.title,
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        // const SizedBox(height: 4),
+                        // 出演者リスト
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children:
+                              program.$2
+                                  .map((member) => Text('・$member'))
+                                  .toList(),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           );
         },

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hello_radiko_explorer/firebase_options.dart';
 import 'listen_now_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'dart:convert';
 import 'package:flutter/services.dart' show rootBundle;
@@ -20,6 +21,9 @@ Future<Map<String, List<String>>> loadMembers() async {
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  FirebaseFirestore.instance.settings = const Settings(
+    persistenceEnabled: true,
+  );
   runApp(const MyApp());
 }
 
