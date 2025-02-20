@@ -1,5 +1,5 @@
-import 'dart:math';
-import 'package:http/http.dart' as http;
+// import 'dart:math';
+// import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -227,7 +227,7 @@ class _ListenNowPageState extends State<ListenNowPage> {
       }
       programs_1.sort((a, b) => a.$1.id.compareTo(b.$1.id));
       List<(RadioProgram, List<String>)> programs_2 = [];
-      RadioProgram? temp1 = null;
+      RadioProgram? temp1;
       for (var element in programs_1) {
         if (temp1 != null) {
           if (element.$1.id == temp1.id) {
