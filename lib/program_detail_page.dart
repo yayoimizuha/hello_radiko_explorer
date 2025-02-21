@@ -127,7 +127,7 @@ class ProgramDetailPage extends StatelessWidget {
                               height: 50,
                               margin: const EdgeInsets.only(right: 8.0),
                               child: CachedNetworkImage(
-                                imageUrl: music.artworkUrl,
+                                imageUrl: 'https://serveimage-rnfi7uy4qq-an.a.run.app/serveImage?url${music.artworkUrl}',
                                 placeholder:
                                     (context, url) =>
                                         const CircularProgressIndicator(),
