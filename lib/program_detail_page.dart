@@ -61,7 +61,7 @@ class ProgramDetailPage extends StatelessWidget {
               program.img != null
                   ? CachedNetworkImage(
                     imageUrl:
-                        "https://getimagebase64-rnfi7uy4qq-uc.a.run.app/getImageBase64?url=${program.img}",
+                        "https://serveimage-rnfi7uy4qq-an.a.run.app/serveImage?url=${program.img}",
                     width: double.infinity,
                     fit: BoxFit.cover,
                   )
