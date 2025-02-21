@@ -302,7 +302,7 @@ class _ListenNowPageState extends State<ListenNowPage> {
                     // 画像
                     CachedNetworkImage(
                       imageUrl:
-                          "https://getimagebase64-rnfi7uy4qq-uc.a.run.app/getImageBase64?url=${program.$1.img}",
+                          "https://serveimage-rnfi7uy4qq-an.a.run.app/serveImage?url=${program.$1.img}",
                       width: 160,
                       height: 100,
                       placeholder:
