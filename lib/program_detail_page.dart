@@ -4,14 +4,30 @@ import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'listen_now_page.dart';
 import 'package:intl/intl.dart';
+import 'package:hello_radiko_explorer/services/settings_service.dart';
 
-class ProgramDetailPage extends StatelessWidget {
+class ProgramDetailPage extends StatefulWidget {
   final RadioProgram program;
+  final bool openRadikoInApp;
 
-  const ProgramDetailPage({super.key, required this.program});
+  const ProgramDetailPage({super.key, required this.program, required this.openRadikoInApp});
+
+  @override
+  State<ProgramDetailPage> createState() => _ProgramDetailPageState();
+}
+
+class _ProgramDetailPageState extends State<ProgramDetailPage> {
+  late bool openRadikoInApp;
+
+  @override
+  void initState() {
+    super.initState();
+    openRadikoInApp = SettingsService().openRadikoInApp;
+  }
 
   @override
   Widget build(BuildContext context) {
+    final program = widget.program;
     print(program.info?.replaceAll(RegExp(r'^\s+', multiLine: true), '\n'));
     print(program.desc?.replaceAll(RegExp(r'^\s+', multiLine: true), '\n'));
 
@@ -39,11 +55,11 @@ class ProgramDetailPage extends StatelessWidget {
               const SizedBox(height: 8),
               program.img != null
                   ? CachedNetworkImage(
-                    imageUrl:
-                        "https://serveimage-rnfi7uy4qq-an.a.run.app/serveImage?url=${program.img}",
-                    width: double.infinity,
-                    fit: BoxFit.cover,
-                  )
+                      imageUrl:
+                          "https://serveimage-rnfi7uy4qq-an.a.run.app/serveImage?url=${program.img}",
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                    )
                   : SizedBox.shrink(),
               const SizedBox(height: 8),
               Text(
@@ -54,48 +70,68 @@ class ProgramDetailPage extends StatelessWidget {
                 ),
               ),
               Row(
-                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
+                  Visibility(
+                    visible: widget.openRadikoInApp,
+                    child: Padding(
+                      padding: const EdgeInsets.only(right: 8.0),
+                      child: SizedBox(
+                        width: 150,
+                        height: 40,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(5),
+                            ),
+                          ),
+                          onPressed: () async {
+                            final radikoUrl =
+                                'radiko://radiko.onelink.me/?deep_link_sub1=${program.radioChannel.id}&deep_link_sub2=${DateFormat('yyyyMMddHHmmss').format(program.ft)}&deep_link_value=${program.id}';
+
+                            if (await canLaunchUrl(Uri.parse(radikoUrl))) {
+                              await launchUrl(Uri.parse(radikoUrl));
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                    content: Text('Radikoアプリを開けませんでした。')),
+                              );
+                            }
+                          },
+                          child: const Text('アプリで開く'),
+                        ),
                       ),
                     ),
-                    onPressed: () async {
-                      final radikoUrl =
-                          'radiko://radiko.onelink.me/?deep_link_sub1=${program.radioChannel.id}&deep_link_sub2=${DateFormat('yyyyMMddHHmmss').format(program.ft)}&deep_link_value=${program.id}';
-
-                      if (await canLaunchUrl(Uri.parse(radikoUrl))) {
-                        await launchUrl(Uri.parse(radikoUrl));
-                      } else {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Radikoアプリを開けませんでした。')),
-                        );
-                      }
-                    },
-                    child: const Text('アプリで開く'),
                   ),
-                  const SizedBox(width: 16),
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
+                  Visibility(
+                    visible: !widget.openRadikoInApp,
+                    child: Padding(
+                      padding: const EdgeInsets.only(right: 8.0),
+                      child: SizedBox(
+                        width: 150,
+                        height: 40,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(5),
+                            ),
+                          ),
+                          onPressed: () async {
+                            final webUrl =
+                                'https://radiko.jp/#!/ts/${program.radioChannel.id}/${DateFormat('yyyyMMddHHmmss').format(program.ft)}';
+
+                            if (await canLaunchUrl(Uri.parse(webUrl))) {
+                              await launchUrl(Uri.parse(webUrl));
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('ブラウザを開けませんでした。')),
+                              );
+                            }
+                          },
+                          child: const Text('ブラウザで開く'),
+                        ),
                       ),
                     ),
-                    onPressed: () async {
-                      final webUrl =
-                          'https://radiko.jp/#!/ts/${program.radioChannel.id}/${DateFormat('yyyyMMddHHmmss').format(program.ft)}';
-
-                      if (await canLaunchUrl(Uri.parse(webUrl))) {
-                        await launchUrl(Uri.parse(webUrl));
-                      } else {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('ブラウザを開けませんでした。')),
-                        );
-                      }
-                    },
-                    child: const Text('サイトで開く'),
                   ),
                 ],
               ),
@@ -139,49 +175,49 @@ class ProgramDetailPage extends StatelessWidget {
               Column(
                 children:
                     program.onAirMusic.map((music) {
-                      return Container(
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.black),
+                  return Container(
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.black),
+                    ),
+                    margin: const EdgeInsets.symmetric(vertical: 4.0),
+                    padding: const EdgeInsets.all(8.0),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 50,
+                          height: 50,
+                          margin: const EdgeInsets.only(right: 8.0),
+                          child: CachedNetworkImage(
+                            imageUrl:
+                                'https://serveimage-rnfi7uy4qq-an.a.run.app/serveImage?url=${music.artworkUrl}',
+                            placeholder:
+                                (context, url) =>
+                                    const CircularProgressIndicator(),
+                            errorWidget:
+                                (context, url, error) => Image.network(
+                                  'https://via.assets.so/img.jpg?w=300&h=300&tc=blue&bg=#cecece',
+                                  width: 50,
+                                  height: 50,
+                                ),
+                            fit: BoxFit.cover,
+                          ),
                         ),
-                        margin: const EdgeInsets.symmetric(vertical: 4.0),
-                        padding: const EdgeInsets.all(8.0),
-                        child: Row(
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Container(
-                              width: 50,
-                              height: 50,
-                              margin: const EdgeInsets.only(right: 8.0),
-                              child: CachedNetworkImage(
-                                imageUrl:
-                                    'https://serveimage-rnfi7uy4qq-an.a.run.app/serveImage?url=${music.artworkUrl}',
-                                placeholder:
-                                    (context, url) =>
-                                        const CircularProgressIndicator(),
-                                errorWidget:
-                                    (context, url, error) => Image.network(
-                                      'https://via.assets.so/img.jpg?w=300&h=300&tc=blue&bg=#cecece',
-                                      width: 50,
-                                      height: 50,
-                                    ),
-                                fit: BoxFit.cover,
+                            Text(
+                              music.musicTitle,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
                               ),
                             ),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  music.musicTitle,
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                Text(music.artistName),
-                              ],
-                            ),
+                            Text(music.artistName),
                           ],
                         ),
-                      );
-                    }).toList(),
+                      ],
+                    ),
+                  );
+                }).toList(),
               ),
             ],
           ),

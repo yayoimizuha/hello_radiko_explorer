@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:hello_radiko_explorer/services/settings_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'program_detail_page.dart';
 
@@ -140,6 +141,7 @@ Future<List<(RadioProgram, String)>> getFirebaseStruct(String name) async {
 }
 
 class _ListenNowPageState extends State<ListenNowPage> {
+  final settingsService = SettingsService();
   List<String> _selectedMembers = [];
   List<String> _selectedGroups = [];
   final List<String> _allSelectedItems = [];
@@ -277,7 +279,10 @@ class _ListenNowPageState extends State<ListenNowPage> {
                   context,
                   MaterialPageRoute(
                     builder:
-                        (context) => ProgramDetailPage(program: program.$1),
+                        (context) => ProgramDetailPage(
+                          program: program.$1,
+                          openRadikoInApp: settingsService.openRadikoInApp,
+                        ),
                   ),
                 );
               },
