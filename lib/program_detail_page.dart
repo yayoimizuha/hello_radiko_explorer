@@ -23,27 +23,6 @@ class ProgramDetailPage extends StatelessWidget {
             Flexible(
               child: Text(program.title, overflow: TextOverflow.ellipsis),
             ),
-            IconButton(
-              icon: const Icon(Icons.open_in_new),
-              onPressed: () async {
-                final radikoUrl =
-                    'radiko://radiko.onelink.me/?deep_link_sub1=${program.radioChannel.id}&deep_link_sub2=${DateFormat('yyyyMMddHHmmss').format(program.ft)}&deep_link_value=${program.id}';
-                final webUrl =
-                    'https://radiko.jp/#!/ts/${program.radioChannel.id}/${DateFormat('yyyyMMddHHmmss').format(program.ft)}';
-
-                
-                await launchUrl(Uri.parse(radikoUrl));
-                
-                  if (await canLaunchUrl(Uri.parse(webUrl))) {
-                    await launchUrl(Uri.parse(webUrl));
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Radikoアプリもブラウザも開けませんでした。')),
-                    );
-                  }
-                
-              },
-            ),
           ],
         ),
       ),
@@ -73,6 +52,52 @@ class ProgramDetailPage extends StatelessWidget {
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
                 ),
+              ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    onPressed: () async {
+                      final radikoUrl =
+                          'radiko://radiko.onelink.me/?deep_link_sub1=${program.radioChannel.id}&deep_link_sub2=${DateFormat('yyyyMMddHHmmss').format(program.ft)}&deep_link_value=${program.id}';
+
+                      if (await canLaunchUrl(Uri.parse(radikoUrl))) {
+                        await launchUrl(Uri.parse(radikoUrl));
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Radikoアプリを開けませんでした。')),
+                        );
+                      }
+                    },
+                    child: const Text('アプリで開く'),
+                  ),
+                  const SizedBox(width: 16),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    onPressed: () async {
+                      final webUrl =
+                          'https://radiko.jp/#!/ts/${program.radioChannel.id}/${DateFormat('yyyyMMddHHmmss').format(program.ft)}';
+
+                      if (await canLaunchUrl(Uri.parse(webUrl))) {
+                        await launchUrl(Uri.parse(webUrl));
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('ブラウザを開けませんでした。')),
+                        );
+                      }
+                    },
+                    child: const Text('サイトで開く'),
+                  ),
+                ],
               ),
               const SizedBox(height: 16),
               const Text("番組概要:", style: TextStyle(fontSize: 24)),
@@ -127,7 +152,8 @@ class ProgramDetailPage extends StatelessWidget {
                               height: 50,
                               margin: const EdgeInsets.only(right: 8.0),
                               child: CachedNetworkImage(
-                                imageUrl: 'https://serveimage-rnfi7uy4qq-an.a.run.app/serveImage?url=${music.artworkUrl}',
+                                imageUrl:
+                                    'https://serveimage-rnfi7uy4qq-an.a.run.app/serveImage?url=${music.artworkUrl}',
                                 placeholder:
                                     (context, url) =>
                                         const CircularProgressIndicator(),
