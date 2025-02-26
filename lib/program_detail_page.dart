@@ -10,7 +10,11 @@ class ProgramDetailPage extends StatefulWidget {
   final RadioProgram program;
   final bool openRadikoInApp;
 
-  const ProgramDetailPage({super.key, required this.program, required this.openRadikoInApp});
+  const ProgramDetailPage({
+    super.key,
+    required this.program,
+    required this.openRadikoInApp,
+  });
 
   @override
   State<ProgramDetailPage> createState() => _ProgramDetailPageState();
@@ -55,11 +59,11 @@ class _ProgramDetailPageState extends State<ProgramDetailPage> {
               const SizedBox(height: 8),
               program.img != null
                   ? CachedNetworkImage(
-                      imageUrl:
-                          "https://serveimage-rnfi7uy4qq-an.a.run.app/serveImage?url=${program.img}",
-                      width: double.infinity,
-                      fit: BoxFit.cover,
-                    )
+                    imageUrl:
+                        "https://serveimage-rnfi7uy4qq-an.a.run.app/serveImage?url=${program.img}",
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                  )
                   : SizedBox.shrink(),
               const SizedBox(height: 8),
               Text(
@@ -70,70 +74,8 @@ class _ProgramDetailPageState extends State<ProgramDetailPage> {
                 ),
               ),
               Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  Visibility(
-                    visible: widget.openRadikoInApp,
-                    child: Padding(
-                      padding: const EdgeInsets.only(right: 8.0),
-                      child: SizedBox(
-                        width: 150,
-                        height: 40,
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(5),
-                            ),
-                          ),
-                          onPressed: () async {
-                            final radikoUrl =
-                                'radiko://radiko.onelink.me/?deep_link_sub1=${program.radioChannel.id}&deep_link_sub2=${DateFormat('yyyyMMddHHmmss').format(program.ft)}&deep_link_value=${program.id}';
-
-                            if (await canLaunchUrl(Uri.parse(radikoUrl))) {
-                              await launchUrl(Uri.parse(radikoUrl));
-                            } else {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                    content: Text('Radikoアプリを開けませんでした。')),
-                              );
-                            }
-                          },
-                          child: const Text('アプリで開く'),
-                        ),
-                      ),
-                    ),
-                  ),
-                  Visibility(
-                    visible: !widget.openRadikoInApp,
-                    child: Padding(
-                      padding: const EdgeInsets.only(right: 8.0),
-                      child: SizedBox(
-                        width: 150,
-                        height: 40,
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(5),
-                            ),
-                          ),
-                          onPressed: () async {
-                            final webUrl =
-                                'https://radiko.jp/#!/ts/${program.radioChannel.id}/${DateFormat('yyyyMMddHHmmss').format(program.ft)}';
-
-                            if (await canLaunchUrl(Uri.parse(webUrl))) {
-                              await launchUrl(Uri.parse(webUrl));
-                            } else {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('ブラウザを開けませんでした。')),
-                              );
-                            }
-                          },
-                          child: const Text('ブラウザで開く'),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [_buildRadikoButtons(context, program)],
               ),
               const SizedBox(height: 16),
               const Text("番組概要:", style: TextStyle(fontSize: 24)),
@@ -175,52 +117,144 @@ class _ProgramDetailPageState extends State<ProgramDetailPage> {
               Column(
                 children:
                     program.onAirMusic.map((music) {
-                  return Container(
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Colors.black),
-                    ),
-                    margin: const EdgeInsets.symmetric(vertical: 4.0),
-                    padding: const EdgeInsets.all(8.0),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 50,
-                          height: 50,
-                          margin: const EdgeInsets.only(right: 8.0),
-                          child: CachedNetworkImage(
-                            imageUrl:
-                                'https://serveimage-rnfi7uy4qq-an.a.run.app/serveImage?url=${music.artworkUrl}',
-                            placeholder:
-                                (context, url) =>
-                                    const CircularProgressIndicator(),
-                            errorWidget:
-                                (context, url, error) => Image.network(
-                                  'https://via.assets.so/img.jpg?w=300&h=300&tc=blue&bg=#cecece',
-                                  width: 50,
-                                  height: 50,
-                                ),
-                            fit: BoxFit.cover,
-                          ),
+                      return Container(
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.black),
                         ),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                        margin: const EdgeInsets.symmetric(vertical: 4.0),
+                        padding: const EdgeInsets.all(8.0),
+                        child: Row(
                           children: [
-                            Text(
-                              music.musicTitle,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
+                            Container(
+                              width: 50,
+                              height: 50,
+                              margin: const EdgeInsets.only(right: 8.0),
+                              child: CachedNetworkImage(
+                                imageUrl:
+                                    'https://serveimage-rnfi7uy4qq-an.a.run.app/serveImage?url=${music.artworkUrl}',
+                                placeholder:
+                                    (context, url) =>
+                                        const CircularProgressIndicator(),
+                                errorWidget:
+                                    (context, url, error) => Image.network(
+                                      'https://via.assets.so/img.jpg?w=300&h=300&tc=blue&bg=#cecece',
+                                      width: 50,
+                                      height: 50,
+                                    ),
+                                fit: BoxFit.cover,
                               ),
                             ),
-                            Text(music.artistName),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  music.musicTitle,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                Text(music.artistName),
+                              ],
+                            ),
                           ],
                         ),
-                      ],
-                    ),
-                  );
-                }).toList(),
+                      );
+                    }).toList(),
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRadikoButtons(BuildContext context, RadioProgram program) {
+    final now = DateTime.now();
+    Widget leftButton;
+    if (now.isAfter(program.ft) && now.isBefore(program.to)) {
+      // 現在時刻がft以降でto前の場合は「今すぐ再生」ボタン
+      leftButton = _buildListenNowButton(context, program);
+    } else if (now.isAfter(program.to)) {
+      // 現在時刻がto以降の場合は「タイムフリーを再生」ボタン
+      leftButton = _buildTimeFreeButton(context, program);
+    } else {
+      // それ以外の場合は何も表示しない
+      leftButton = const SizedBox.shrink();
+    }
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        leftButton,
+        Padding(
+          padding: const EdgeInsets.only(right: 8.0),
+          child: SizedBox(
+            width: 200,
+            height: 60,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(5),
+                ),
+              ),
+              onPressed: () async {
+                final radikoUrl =
+                    widget.openRadikoInApp
+                        ? 'radiko://radiko.onelink.me/?deep_link_sub1=${program.radioChannel.id}&deep_link_sub2=${DateFormat('yyyyMMddHHmmss').format(program.ft)}&deep_link_value=${program.id}'
+                        : 'https://radiko.jp/#!/ts/${program.radioChannel.id}/${DateFormat('yyyyMMddHHmmss').format(program.ft)}';
+                await launchUrl(Uri.parse(radikoUrl));
+              },
+              child: Text('${widget.openRadikoInApp ? 'アプリ' : 'ブラウザ'}で開く'),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildListenNowButton(BuildContext context, RadioProgram program) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 8.0),
+      child: SizedBox(
+        width: 200,
+        height: 60,
+        child: ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(5),
+            ),
+          ),
+          onPressed: () async {
+            final radikoUrl =
+                widget.openRadikoInApp
+                    ? 'radiko://radiko.onelink.me/?deep_link_sub1=${program.radioChannel.id}&deep_link_sub2=${DateFormat('yyyyMMddHHmmss').format(program.ft)}&deep_link_value=${program.id}'
+                    : 'https://radiko.jp/#!/ts/${program.radioChannel.id}/${DateFormat('yyyyMMddHHmmss').format(program.ft)}';
+            await launchUrl(Uri.parse(radikoUrl));
+          },
+          child: const Text('今すぐ再生'),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTimeFreeButton(BuildContext context, RadioProgram program) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 8.0),
+      child: SizedBox(
+        width: 200,
+        height: 60,
+        child: ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(5),
+            ),
+          ),
+          onPressed: () async {
+            final radikoUrl =
+                'https://radiko.jp/#!/ts/${program.radioChannel.id}/${DateFormat('yyyyMMddHHmmss').format(program.ft)}';
+            await launchUrl(Uri.parse(radikoUrl));
+          },
+          child: const Text('タイムフリーを再生'),
         ),
       ),
     );
