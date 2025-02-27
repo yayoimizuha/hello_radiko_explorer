@@ -153,6 +153,7 @@ class _ListenNowPageState extends State<ListenNowPage> {
     super.initState();
     _scrollController = ScrollController();
     _loadSelectedMembersAndGroups().then((_) {
+      if (!mounted) return;
       // 現在時刻を含む番組のインデックスを検索
       final now = DateTime.now();
       int initialIndex = _allRadioPrograms.indexWhere(

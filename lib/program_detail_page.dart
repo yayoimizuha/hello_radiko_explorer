@@ -5,6 +5,9 @@ import 'package:url_launcher/url_launcher.dart';
 import 'listen_now_page.dart';
 import 'package:intl/intl.dart';
 import 'package:hello_radiko_explorer/services/settings_service.dart';
+import 'package:hello_radiko_explorer/services/download_service.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class ProgramDetailPage extends StatefulWidget {
   final RadioProgram program;
@@ -250,9 +253,91 @@ class _ProgramDetailPageState extends State<ProgramDetailPage> {
             ),
           ),
           onPressed: () async {
-            final radikoUrl =
-                'https://radiko.jp/#!/ts/${program.radioChannel.id}/${DateFormat('yyyyMMddHHmmss').format(program.ft)}';
-            await launchUrl(Uri.parse(radikoUrl));
+            // ダウンロードサービスを初期化
+            final downloadService = DownloadService();
+            await downloadService.init();
+
+            // 既にダウンロード済みかチェック
+            final existingUrl = await downloadService.getDownloadedUrl(
+              program.radioChannel.id,
+              program.ft,
+            );
+
+            if (existingUrl != null) {
+              // 既にダウンロード済みの場合は、そのURLを開く
+              await launchUrl(Uri.parse(existingUrl));
+              return;
+            }
+
+            // ダウンロードAPIにリクエストを送信
+            final url =
+                'https://asia-northeast1-hello-radiko.cloudfunctions.net/download_timefree?ft=${program.ft.toString()}%2B09:00&channel=${program.radioChannel.id}';
+
+            try {
+              final response = await http.get(Uri.parse(url));
+              final responseData = json.decode(response.body);
+
+              if (responseData['status'] == 'success') {
+                // 成功した場合、URLを保存してそのURLを開く
+                final downloadUrl = responseData['url'];
+
+                // Sembastに音声ファイルを保存
+                await downloadService.saveDownloadedAudio(
+                  programId: program.id.toString(),
+                  channelId: program.radioChannel.id,
+                  ft: program.ft,
+                  url: downloadUrl,
+                  title: program.title,
+                );
+
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('音声ファイルをダウンロードしました。「ダウンロード済み」タブから再生できます。')),
+                );
+              } else {
+                // エラーの場合、ポップアップでエラーメッセージを表示
+                if (!context.mounted) return;
+
+                showDialog(
+                  context: context,
+                  builder: (BuildContext context) {
+                    return AlertDialog(
+                      title: const Text('エラー'),
+                      content: Text(responseData['reason'] ?? 'ダウンロードに失敗しました'),
+                      actions: <Widget>[
+                        TextButton(
+                          onPressed: () {
+                            Navigator.of(context).pop();
+                          },
+                          child: const Text('閉じる'),
+                        ),
+                      ],
+                    );
+                  },
+                );
+              }
+            } catch (e) {
+              // 通信エラーなどの例外処理
+              if (!context.mounted) return;
+
+              showDialog(
+                context: context,
+                builder: (BuildContext context) {
+                  return AlertDialog(
+                    title: const Text('エラー'),
+                    content: Text('通信エラーが発生しました: $e'),
+                    actions: <Widget>[
+                      TextButton(
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                        },
+                        child: const Text('閉じる'),
+                      ),
+                    ],
+                  );
+                },
+              );
+            }
           },
           child: const Text('タイムフリーを再生'),
         ),

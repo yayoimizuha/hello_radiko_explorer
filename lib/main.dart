@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:hello_radiko_explorer/firebase_options.dart';
 import 'package:hello_radiko_explorer/services/settings_service.dart';
+import 'package:hello_radiko_explorer/services/download_service.dart';
 import 'listen_now_page.dart';
+import 'downloads_page.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'dart:convert';
@@ -25,6 +27,7 @@ Future<void> main() async {
     persistenceEnabled: true,
   );
   await SettingsService().init();
+  await DownloadService().init(); // DownloadServiceを初期化
   runApp(const MyApp());
 }
 
@@ -133,7 +136,7 @@ class _MyHomePageState extends State<MyHomePage> {
       case 0:
         return ListenNowPage();
       case 1:
-        return const Center(child: Text('ダウンロード済み'));
+        return const DownloadsPage();
       case 2:
         return const SettingsPage();
       default:
