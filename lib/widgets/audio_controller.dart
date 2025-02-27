@@ -26,25 +26,28 @@ class _AudioControllerState extends State<AudioController> {
   Widget build(BuildContext context) {
     return Container(
       height: 60,
-      color: Colors.grey[300],
+      color:
+          Theme.of(context).brightness == Brightness.dark
+              ? Colors.grey[800]
+              : Colors.grey[300],
       padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 4),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           IconButton(
-            iconSize: 18.0,
+            iconSize: 24.0,
             icon: const Icon(Icons.replay_30),
             onPressed: () async {
               await AudioService.seek(const Duration(seconds: -30));
             },
           ),
           IconButton(
-            iconSize: 18.0,
+            iconSize: 24.0,
             icon: Icon(_isPlaying ? Icons.pause : Icons.play_arrow),
             onPressed: _togglePlay,
           ),
           IconButton(
-            iconSize: 18.0,
+            iconSize: 24.0,
             icon: const Icon(Icons.forward_30),
             onPressed: () async {
               await AudioService.seek(const Duration(seconds: 30));
