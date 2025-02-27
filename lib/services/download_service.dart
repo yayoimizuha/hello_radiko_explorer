@@ -38,15 +38,15 @@ class DownloadService {
     await _ensureInitialized();
     isDownloading.value = true;
     await Future.delayed(Duration(milliseconds: 100));
-   
+
     try {
       // URLから音声ファイルをダウンロード
       final response = await http.get(Uri.parse(url));
- 
+
       if (response.statusCode == 200) {
         final audioData = Uint8List.fromList(response.bodyBytes);
         final base64Audio = base64Encode(audioData);
- 
+
         // データベースに保存（BLOB形式としてbase64エンコード済みの値を保存）
         final key = _generateKey(channelId, ft);
         await _store.record(key).put(_database!, {

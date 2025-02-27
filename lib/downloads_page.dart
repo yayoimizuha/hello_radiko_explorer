@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hello_radiko_explorer/services/download_service.dart';
+import 'package:hello_radiko_explorer/services/audio_service.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -82,9 +83,27 @@ class _DownloadsPageState extends State<DownloadsPage> {
               ),
               trailing: const Icon(Icons.play_arrow),
               onTap: () async {
-                final url = download['url'];
-                if (url != null) {
-                  await launchUrl(Uri.parse(url));
+                // Retrieve channelId and ft from download
+                final channelId = download['channelId'];
+                final ft = DateTime.parse(download['ft']);
+                // Try to obtain the downloaded audio data from the database.
+                final downloadedAudio = await DownloadService()
+                    .getDownloadedAudio(channelId, ft);
+                if (downloadedAudio != null) {
+                  await AudioService.playAudioData(downloadedAudio);
+                } else {
+                  // Fallback: try to get the original URL if audioData is unavailable
+                  final url = await DownloadService().getDownloadedUrl(
+                    channelId,
+                    ft,
+                  );
+                  if (url != null) {
+                    await AudioService.playAudioData(url);
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('再生する音声が見つかりません')),
+                    );
+                  }
                 }
               },
             ),
