@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hello_radiko_explorer/services/audio_service.dart';
+import 'package:audioplayers/audioplayers.dart';
 
 class AudioController extends StatefulWidget {
   const AudioController({Key? key}) : super(key: key);
@@ -10,55 +11,43 @@ class AudioController extends StatefulWidget {
 
 class _AudioControllerState extends State<AudioController> {
   bool _isPlaying = false;
-
+  
+  @override
+  void initState() {
+    super.initState();
+    AudioService.playerStateStream.listen((state) {
+      setState(() {
+        _isPlaying = state == PlayerState.playing;
+      });
+    });
+  }
+  
   void _togglePlay() async {
     if (_isPlaying) {
       await AudioService.pause();
     } else {
       await AudioService.resume();
     }
-    setState(() {
-      _isPlaying = !_isPlaying;
-    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 60,
+      height: 80,
       color:
           Theme.of(context).brightness == Brightness.dark
               ? Colors.grey[800]
               : Colors.grey[300],
       padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 4),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
+      child: Column(
         children: [
-          IconButton(
-            iconSize: 24.0,
-            icon: const Icon(Icons.replay_30),
-            onPressed: () async {
-              await AudioService.seek(const Duration(seconds: -30));
-            },
-          ),
-          IconButton(
-            iconSize: 24.0,
-            icon: Icon(_isPlaying ? Icons.pause : Icons.play_arrow),
-            onPressed: _togglePlay,
-          ),
-          IconButton(
-            iconSize: 24.0,
-            icon: const Icon(Icons.forward_30),
-            onPressed: () async {
-              await AudioService.seek(const Duration(seconds: 30));
-            },
-          ),
+          // シークバーをオーディオコントローラーの上辺に配置
           StreamBuilder<Duration?>(
             stream: AudioService.durationStream,
             builder: (context, durationSnapshot) {
               final duration = durationSnapshot.data ?? Duration.zero;
               return SizedBox(
-                width: 200,
+                height: 30,
                 child: StreamBuilder<Duration>(
                   stream: AudioService.positionStream,
                   builder: (context, positionSnapshot) {
@@ -80,6 +69,33 @@ class _AudioControllerState extends State<AudioController> {
                 ),
               );
             },
+          ),
+          // 再生/停止・スキップボタンの配置
+          Expanded(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                IconButton(
+                  iconSize: 24.0,
+                  icon: const Icon(Icons.replay_30),
+                  onPressed: () async {
+                    await AudioService.skipSize(-30);
+                  },
+                ),
+                IconButton(
+                  iconSize: 24.0,
+                  icon: Icon(_isPlaying ? Icons.pause : Icons.play_arrow),
+                  onPressed: _togglePlay,
+                ),
+                IconButton(
+                  iconSize: 24.0,
+                  icon: const Icon(Icons.forward_30),
+                  onPressed: () async {
+                    await AudioService.skipSize(30);
+                  },
+                ),
+              ],
+            ),
           ),
         ],
       ),

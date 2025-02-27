@@ -34,15 +34,15 @@ class AudioService {
     await _audioPlayer.stop();
   }
 
-  static Future<void> skipForward() async {
-    final current = await _audioPlayer.getCurrentPosition() ?? Duration.zero;
-    final newPosition = current + const Duration(seconds: 30);
-    await _audioPlayer.seek(newPosition);
-  }
+  // static Future<void> skipForward() async {
+  //   final current = await _audioPlayer.getCurrentPosition() ?? Duration.zero;
+  //   final newPosition = current + const Duration(seconds: 30);
+  //   await _audioPlayer.seek(newPosition);
+  // }
 
-  static Future<void> skipBackward() async {
+  static Future<void> skipSize(int move) async {
     final current = await _audioPlayer.getCurrentPosition() ?? Duration.zero;
-    Duration newPosition = current - const Duration(seconds: 30);
+    Duration newPosition = current + Duration(seconds: move);
     if (newPosition < Duration.zero) {
       newPosition = Duration.zero;
     }
@@ -55,4 +55,6 @@ class AudioService {
 
   static Stream<Duration> get positionStream => _audioPlayer.onPositionChanged;
   static Stream<Duration?> get durationStream => _audioPlayer.onDurationChanged;
+
+  static Stream<PlayerState> get playerStateStream => _audioPlayer.onPlayerStateChanged;
 }

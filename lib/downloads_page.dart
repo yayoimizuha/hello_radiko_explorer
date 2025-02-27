@@ -15,6 +15,10 @@ class _DownloadsPageState extends State<DownloadsPage> {
   final DownloadService _downloadService = DownloadService();
   List<Map<String, dynamic>> _downloads = [];
   bool _isLoading = true;
+ 
+  String? _playingDownloadId;
+  bool _playLoading = false;
+  bool _isAudioPlaying = false;
 
   @override
   void initState() {
@@ -81,22 +85,40 @@ class _DownloadsPageState extends State<DownloadsPage> {
               subtitle: Text(
                 'ダウンロード日時: ${DateFormat('yyyy/MM/dd HH:mm').format(downloadedAt)}',
               ),
-              trailing: const Icon(Icons.play_arrow),
+              trailing: _playLoading && _playingDownloadId == "${download['channelId']}-${download['ft']}"
+                  ? const SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : _isAudioPlaying && _playingDownloadId == "${download['channelId']}-${download['ft']}"
+                      ? const Icon(Icons.stop)
+                      : const Icon(Icons.play_arrow),
               onTap: () async {
-                // Retrieve channelId and ft from download
+                final downloadId = "${download['channelId']}-${download['ft']}";
+                // If the tapped download is already playing, stop it.
+                if (_isAudioPlaying && _playingDownloadId == downloadId) {
+                  await AudioService.stopAudio();
+                  setState(() {
+                    _isAudioPlaying = false;
+                    _playingDownloadId = null;
+                  });
+                  return;
+                }
+                // Start loading state and record the download id.
+                setState(() {
+                  _playLoading = true;
+                  _playingDownloadId = downloadId;
+                });
                 final channelId = download['channelId'];
                 final ft = DateTime.parse(download['ft']);
-                // Try to obtain the downloaded audio data from the database.
-                final downloadedAudio = await DownloadService()
-                    .getDownloadedAudio(channelId, ft);
+                // Try to obtain the downloaded audio data from storage.
+                final downloadedAudio = await DownloadService().getDownloadedAudio(channelId, ft);
                 if (downloadedAudio != null) {
                   await AudioService.playAudioData(downloadedAudio);
                 } else {
-                  // Fallback: try to get the original URL if audioData is unavailable
-                  final url = await DownloadService().getDownloadedUrl(
-                    channelId,
-                    ft,
-                  );
+                  // Fallback: try to get the original URL if audioData is unavailable.
+                  final url = await DownloadService().getDownloadedUrl(channelId, ft);
                   if (url != null) {
                     await AudioService.playAudioData(url);
                   } else {
@@ -105,6 +127,11 @@ class _DownloadsPageState extends State<DownloadsPage> {
                     );
                   }
                 }
+                // Playback started; update playing state.
+                setState(() {
+                  _playLoading = false;
+                  _isAudioPlaying = true;
+                });
               },
             ),
           );
