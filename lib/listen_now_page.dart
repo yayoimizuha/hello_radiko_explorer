@@ -218,7 +218,9 @@ class _ListenNowPageState extends State<ListenNowPage> {
         _allSelectedItems.addAll(_selectedGroups);
         _allSelectedItems.addAll(_selectedMembers);
       });
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
 
       // _allSelectedItems の内容を一つずつ getFirebaseStruct に与えて、その戻り値を _allRadioPrograms に入力
       List<(RadioProgram, String)> programs_1 = [];
@@ -245,16 +247,19 @@ class _ListenNowPageState extends State<ListenNowPage> {
       }
       programs_2.sort((a, b) => b.$1.ft.compareTo(a.$1.ft));
 
-      setState(() {
-        _allRadioPrograms = programs_2;
-      });
-      if (!mounted) return;
+      if (mounted) {
+        setState(() {
+          _allRadioPrograms = programs_2;
+        });
+      }
     } catch (e) {
       print('Error loading selections: $e');
-      setState(() {
-        _selectedMembers = [];
-        _selectedGroups = [];
-      });
+      if (mounted) {
+        setState(() {
+          _selectedMembers = [];
+          _selectedGroups = [];
+        });
+      }
     }
   }
 

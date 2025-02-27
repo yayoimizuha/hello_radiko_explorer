@@ -7,7 +7,8 @@ Future<Map<String, List<String>>> loadMembers() async {
   final String jsonString = await rootBundle.loadString('lib/members.json');
   final dynamic jsonResponse = jsonDecode(jsonString);
   return (jsonResponse as Map<String, dynamic>).map<String, List<String>>(
-      (key, value) => MapEntry(key, List<String>.from(value as List)));
+    (key, value) => MapEntry(key, List<String>.from(value as List)),
+  );
 }
 
 class SettingsPage extends StatefulWidget {

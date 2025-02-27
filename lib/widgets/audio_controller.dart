@@ -25,22 +25,57 @@ class _AudioControllerState extends State<AudioController> {
   @override
   Widget build(BuildContext context) {
     return Container(
+      height: 60,
       color: Colors.grey[300],
-      padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+      padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 4),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           IconButton(
+            iconSize: 18.0,
+            icon: const Icon(Icons.replay_30),
+            onPressed: () async {
+              await AudioService.seek(const Duration(seconds: -30));
+            },
+          ),
+          IconButton(
+            iconSize: 18.0,
             icon: Icon(_isPlaying ? Icons.pause : Icons.play_arrow),
             onPressed: _togglePlay,
           ),
           IconButton(
-            icon: const Icon(Icons.stop),
+            iconSize: 18.0,
+            icon: const Icon(Icons.forward_30),
             onPressed: () async {
-              await AudioService.stop();
-              setState(() {
-                _isPlaying = false;
-              });
+              await AudioService.seek(const Duration(seconds: 30));
+            },
+          ),
+          StreamBuilder<Duration?>(
+            stream: AudioService.durationStream,
+            builder: (context, durationSnapshot) {
+              final duration = durationSnapshot.data ?? Duration.zero;
+              return SizedBox(
+                width: 200,
+                child: StreamBuilder<Duration>(
+                  stream: AudioService.positionStream,
+                  builder: (context, positionSnapshot) {
+                    final position = positionSnapshot.data ?? Duration.zero;
+                    return SliderTheme(
+                      data: SliderTheme.of(context).copyWith(trackHeight: 4.0),
+                      child: Slider(
+                        value: position.inSeconds.toDouble(),
+                        min: 0,
+                        max: duration.inSeconds.toDouble(),
+                        onChanged: (value) async {
+                          await AudioService.seek(
+                            Duration(seconds: value.toInt()),
+                          );
+                        },
+                      ),
+                    );
+                  },
+                ),
+              );
             },
           ),
         ],

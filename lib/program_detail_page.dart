@@ -275,7 +275,8 @@ class _ProgramDetailPageState extends State<ProgramDetailPage> {
 
             try {
               final response = await http.get(Uri.parse(url));
-              final responseData = json.decode(response.body);
+              final decodedBody = utf8.decode(response.bodyBytes);
+              final responseData = json.decode(decodedBody);
 
               if (responseData['status'] == 'success') {
                 // 成功した場合、URLを保存してそのURLを開く

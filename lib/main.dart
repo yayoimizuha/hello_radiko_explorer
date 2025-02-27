@@ -5,6 +5,7 @@ import 'package:hello_radiko_explorer/services/download_service.dart';
 import 'listen_now_page.dart';
 import 'downloads_page.dart';
 import 'widgets/settings_screen.dart';
+import 'widgets/audio_controller.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'dart:convert';
@@ -117,6 +118,7 @@ class _MyHomePageState extends State<MyHomePage> {
             selectedItemColor: Colors.amber[800],
             onTap: _onItemTapped,
           ),
+          bottomSheet: const AudioController(),
         );
       },
     );
