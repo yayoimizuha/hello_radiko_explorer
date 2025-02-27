@@ -96,41 +96,44 @@ class _DownloadsPageState extends State<DownloadsPage> {
                       : const Icon(Icons.play_arrow),
               onTap: () async {
                 final downloadId = "${download['channelId']}-${download['ft']}";
-                // If the tapped download is already playing, stop it.
+                // If tapped download is currently playing, stop it.
                 if (_isAudioPlaying && _playingDownloadId == downloadId) {
-                  await AudioService.stopAudio();
+                  await AudioService.stop();
                   setState(() {
                     _isAudioPlaying = false;
                     _playingDownloadId = null;
                   });
                   return;
                 }
-                // Start loading state and record the download id.
+                // Start loading state for the tapped download.
                 setState(() {
                   _playLoading = true;
                   _playingDownloadId = downloadId;
                 });
                 final channelId = download['channelId'];
                 final ft = DateTime.parse(download['ft']);
+                bool playSuccess = false;
                 // Try to obtain the downloaded audio data from storage.
                 final downloadedAudio = await DownloadService().getDownloadedAudio(channelId, ft);
                 if (downloadedAudio != null) {
                   await AudioService.playAudioData(downloadedAudio);
+                  playSuccess = true;
                 } else {
                   // Fallback: try to get the original URL if audioData is unavailable.
                   final url = await DownloadService().getDownloadedUrl(channelId, ft);
                   if (url != null) {
                     await AudioService.playAudioData(url);
+                    playSuccess = true;
                   } else {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text('再生する音声が見つかりません')),
                     );
                   }
                 }
-                // Playback started; update playing state.
                 setState(() {
                   _playLoading = false;
-                  _isAudioPlaying = true;
+                  _isAudioPlaying = playSuccess;
+                  _playingDownloadId = playSuccess ? downloadId : null;
                 });
               },
             ),
