@@ -3,6 +3,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'listen_now_page.dart';
+import 'downloads_page.dart';
 import 'package:intl/intl.dart';
 import 'package:hello_radiko_explorer/services/settings_service.dart';
 import 'package:hello_radiko_explorer/services/download_service.dart';
@@ -264,8 +265,8 @@ class _ProgramDetailPageState extends State<ProgramDetailPage> {
             );
 
             if (existingUrl != null) {
-              // 既にダウンロード済みの場合は、そのURLを開く
-              await launchUrl(Uri.parse(existingUrl));
+              // 既にダウンロード済みの場合は、戻り値でダウンロード済みタブに切り替え、該当番組の識別子を返す
+              Navigator.pop(context, 'downloads:${program.radioChannel.id}');
               return;
             }
 
@@ -292,11 +293,12 @@ class _ProgramDetailPageState extends State<ProgramDetailPage> {
                 );
 
                 if (!context.mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('音声ファイルをダウンロードしました。「ダウンロード済み」タブから再生できます。'),
-                  ),
-                );
+                // ScaffoldMessenger.of(context).showSnackBar(
+                // const SnackBar(
+                // content: Text('音声ファイルをダウンロードしました。「ダウンロード済み」タブから再生できます。'),
+                // ),
+                // );
+                Navigator.pop(context, 'downloads:${program.radioChannel.id}');
               } else {
                 // エラーの場合、ポップアップでエラーメッセージを表示
                 if (!context.mounted) return;

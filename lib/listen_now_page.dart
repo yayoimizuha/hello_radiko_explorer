@@ -9,7 +9,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'program_detail_page.dart';
 
 class ListenNowPage extends StatefulWidget {
-  const ListenNowPage({super.key});
+  final Function(String)? onTabSwitch;
+  const ListenNowPage({super.key, this.onTabSwitch});
 
   @override
   State<ListenNowPage> createState() => _ListenNowPageState();
@@ -282,8 +283,8 @@ class _ListenNowPageState extends State<ListenNowPage> {
               bottom: 4.0,
             ),
             child: GestureDetector(
-              onTap: () {
-                Navigator.push(
+              onTap: () async {
+                final result = await Navigator.push(
                   context,
                   MaterialPageRoute(
                     builder:
@@ -293,6 +294,9 @@ class _ListenNowPageState extends State<ListenNowPage> {
                         ),
                   ),
                 );
+                if (result != null) {
+                  widget.onTabSwitch?.call(result);
+                }
               },
               child: Container(
                 decoration: BoxDecoration(

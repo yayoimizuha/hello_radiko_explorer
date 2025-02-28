@@ -24,14 +24,14 @@ Future<void> main() async {
 
 class MyApp extends StatefulWidget {
   const MyApp({super.key});
-  
+
   @override
   _MyAppState createState() => _MyAppState();
 }
 
 class _MyAppState extends State<MyApp> {
   final _settings = SettingsService();
-  
+
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder<bool>(
@@ -62,23 +62,35 @@ class _MyAppState extends State<MyApp> {
 
 class MyHomePage extends StatefulWidget {
   const MyHomePage({super.key, required this.title});
-  
+
   final String title;
-  
+
   @override
   State<MyHomePage> createState() => _MyHomePageState();
 }
 
 class _MyHomePageState extends State<MyHomePage> {
   int _selectedIndex = 0;
+  String? _downloadProgramId;
   final _settings = SettingsService();
-  
+
   void _onItemTapped(int index) {
+    print('Tab tapped: $index');
     setState(() {
       _selectedIndex = index;
+      if (index != 1) {
+        _downloadProgramId = null;
+      }
     });
   }
-  
+
+  void _handleTabSwitch(String programId) {
+    setState(() {
+      _downloadProgramId = programId;
+      _selectedIndex = 1;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder<bool>(
@@ -86,16 +98,18 @@ class _MyHomePageState extends State<MyHomePage> {
       builder: (context, darkMode, child) {
         return Scaffold(
           appBar: AppBar(
-            backgroundColor: darkMode
-                ? const Color.fromARGB(255, 16, 74, 111)
-                : Colors.blueAccent,
+            backgroundColor:
+                darkMode
+                    ? const Color.fromARGB(255, 16, 74, 111)
+                    : Colors.blueAccent,
             title: Text(
               widget.title,
-              style: darkMode
-                  ? const TextStyle(
-                      color: Color.fromARGB(255, 221, 144, 27),
-                    )
-                  : const TextStyle(color: Colors.lime),
+              style:
+                  darkMode
+                      ? const TextStyle(
+                        color: Color.fromARGB(255, 221, 144, 27),
+                      )
+                      : const TextStyle(color: Colors.lime),
             ),
           ),
           body: _getPage(_selectedIndex),
@@ -109,10 +123,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 icon: Icon(Icons.download),
                 label: 'ダウンロード済み',
               ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.settings),
-                label: '設定',
-              ),
+              BottomNavigationBarItem(icon: Icon(Icons.settings), label: '設定'),
             ],
             currentIndex: _selectedIndex,
             selectedItemColor: Colors.amber[800],
@@ -123,13 +134,13 @@ class _MyHomePageState extends State<MyHomePage> {
       },
     );
   }
-  
+
   Widget _getPage(int index) {
     switch (index) {
       case 0:
-        return ListenNowPage();
+        return ListenNowPage(onTabSwitch: _handleTabSwitch);
       case 1:
-        return const DownloadsPage();
+        return DownloadsPage(programId: _downloadProgramId);
       case 2:
         return const SettingsPage();
       default:

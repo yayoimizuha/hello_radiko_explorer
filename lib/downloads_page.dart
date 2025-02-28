@@ -5,7 +5,8 @@ import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class DownloadsPage extends StatefulWidget {
-  const DownloadsPage({super.key});
+  final String? programId;
+  const DownloadsPage({super.key, this.programId});
 
   @override
   State<DownloadsPage> createState() => _DownloadsPageState();
@@ -15,7 +16,7 @@ class _DownloadsPageState extends State<DownloadsPage> {
   final DownloadService _downloadService = DownloadService();
   List<Map<String, dynamic>> _downloads = [];
   bool _isLoading = true;
- 
+
   String? _playingDownloadId;
   bool _playLoading = false;
   bool _isAudioPlaying = false;
@@ -23,6 +24,7 @@ class _DownloadsPageState extends State<DownloadsPage> {
   @override
   void initState() {
     super.initState();
+    print('DownloadsPage: initState, programId = ${widget.programId}');
     _loadDownloads();
   }
 
@@ -37,6 +39,24 @@ class _DownloadsPageState extends State<DownloadsPage> {
         _downloads = downloads;
         _isLoading = false;
       });
+      if (widget.programId != null) {
+        String targetId = widget.programId!;
+        // もし "downloads:" プレフィックスが含まれていれば除去
+        if (targetId.startsWith("downloads:")) {
+          targetId = targetId.replaceFirst("downloads:", "");
+        }
+        print("Auto-play triggered for programId: $targetId");
+        await Future.delayed(const Duration(seconds: 1));
+        try {
+          final matching = _downloads.firstWhere(
+            (d) => d['channelId'] == targetId,
+          );
+          print("Auto-play: Found matching download: $matching");
+          await _playDownload(matching);
+        } catch (e) {
+          print("Auto-play: Matching download not found: $e");
+        }
+      }
     } catch (e) {
       setState(() {
         _isLoading = false;
@@ -47,6 +67,49 @@ class _DownloadsPageState extends State<DownloadsPage> {
         context,
       ).showSnackBar(SnackBar(content: Text('ダウンロード一覧の取得に失敗しました: $e')));
     }
+  }
+
+  Future<void> _playDownload(Map<String, dynamic> download) async {
+    print("Auto-play _playDownload called with download: $download");
+    final downloadId = "${download['channelId']}-${download['ft']}";
+    if (_isAudioPlaying && _playingDownloadId == downloadId) {
+      await AudioService.stop();
+      setState(() {
+        _isAudioPlaying = false;
+        _playingDownloadId = null;
+      });
+      return;
+    }
+    setState(() {
+      _playLoading = true;
+      _playingDownloadId = downloadId;
+    });
+    final channelId = download['channelId'];
+    final ft = DateTime.parse(download['ft']);
+    bool playSuccess = false;
+    final downloadedAudio = await DownloadService().getDownloadedAudio(
+      channelId,
+      ft,
+    );
+    if (downloadedAudio != null) {
+      await AudioService.playAudioData(downloadedAudio);
+      playSuccess = true;
+    } else {
+      final url = await DownloadService().getDownloadedUrl(channelId, ft);
+      if (url != null) {
+        await AudioService.playAudioData(url);
+        playSuccess = true;
+      } else {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('再生する音声が見つかりません')));
+      }
+    }
+    setState(() {
+      _playLoading = false;
+      _isAudioPlaying = playSuccess;
+      _playingDownloadId = playSuccess ? downloadId : null;
+    });
   }
 
   @override
@@ -79,19 +142,24 @@ class _DownloadsPageState extends State<DownloadsPage> {
             margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
             child: ListTile(
               title: Text(
-                '${download['channelId']} - ${DateFormat('yyyy/MM/dd HH:mm').format(ft)}',
+                '${download['title']} - ${DateFormat('MM/dd HH:mm').format(ft)}',
                 style: const TextStyle(fontWeight: FontWeight.bold),
               ),
               subtitle: Text(
                 'ダウンロード日時: ${DateFormat('yyyy/MM/dd HH:mm').format(downloadedAt)}',
               ),
-              trailing: _playLoading && _playingDownloadId == "${download['channelId']}-${download['ft']}"
-                  ? const SizedBox(
-                      width: 24,
-                      height: 24,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : _isAudioPlaying && _playingDownloadId == "${download['channelId']}-${download['ft']}"
+              trailing:
+                  _playLoading &&
+                          _playingDownloadId ==
+                              "${download['channelId']}-${download['ft']}"
+                      ? const SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                      : _isAudioPlaying &&
+                          _playingDownloadId ==
+                              "${download['channelId']}-${download['ft']}"
                       ? const Icon(Icons.stop)
                       : const Icon(Icons.play_arrow),
               onTap: () async {
@@ -114,13 +182,17 @@ class _DownloadsPageState extends State<DownloadsPage> {
                 final ft = DateTime.parse(download['ft']);
                 bool playSuccess = false;
                 // Try to obtain the downloaded audio data from storage.
-                final downloadedAudio = await DownloadService().getDownloadedAudio(channelId, ft);
+                final downloadedAudio = await DownloadService()
+                    .getDownloadedAudio(channelId, ft);
                 if (downloadedAudio != null) {
                   await AudioService.playAudioData(downloadedAudio);
                   playSuccess = true;
                 } else {
                   // Fallback: try to get the original URL if audioData is unavailable.
-                  final url = await DownloadService().getDownloadedUrl(channelId, ft);
+                  final url = await DownloadService().getDownloadedUrl(
+                    channelId,
+                    ft,
+                  );
                   if (url != null) {
                     await AudioService.playAudioData(url);
                     playSuccess = true;
