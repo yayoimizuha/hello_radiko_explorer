@@ -26,6 +26,7 @@ class ProgramDetailPage extends StatefulWidget {
 
 class _ProgramDetailPageState extends State<ProgramDetailPage> {
   late bool openRadikoInApp;
+  bool _isTimeFreeDownloading = false;
 
   @override
   void initState() {
@@ -253,101 +254,105 @@ class _ProgramDetailPageState extends State<ProgramDetailPage> {
               borderRadius: BorderRadius.circular(5),
             ),
           ),
-          onPressed: () async {
-            // ダウンロードサービスを初期化
-            final downloadService = DownloadService();
-            await downloadService.init();
-
-            // 既にダウンロード済みかチェック
-            final existingUrl = await downloadService.getDownloadedUrl(
-              program.radioChannel.id,
-              program.ft,
-            );
-
-            if (existingUrl != null) {
-              // 既にダウンロード済みの場合は、戻り値でダウンロード済みタブに切り替え、該当番組の識別子を返す
-              Navigator.pop(
-                context,
-                'downloads:${program.radioChannel.id}-${program.id}',
-              );
-              return;
-            }
-
-            // ダウンロードAPIにリクエストを送信
-            final url =
-                'https://asia-northeast1-hello-radiko.cloudfunctions.net/download_timefree?ft=${program.ft.toString()}%2B09:00&channel=${program.radioChannel.id}';
-
-            try {
-              final response = await http.get(Uri.parse(url));
-              final decodedBody = utf8.decode(response.bodyBytes);
-              final responseData = json.decode(decodedBody);
-
-              if (responseData['status'] == 'success') {
-                // 成功した場合、URLを保存してそのURLを開く
-                final downloadUrl = responseData['url'];
-
-                // Sembastに音声ファイルを保存
-                await downloadService.saveDownloadedAudio(
-                  program: program,
-                  url: downloadUrl,
-                );
-
-                if (!context.mounted) return;
-                // ScaffoldMessenger.of(context).showSnackBar(
-                // const SnackBar(
-                // content: Text('音声ファイルをダウンロードしました。「ダウンロード済み」タブから再生できます。'),
-                // ),
-                // );
-                Navigator.pop(
-                  context,
-                  'downloads:${program.radioChannel.id}-${program.id}',
-                );
-              } else {
-                // エラーの場合、ポップアップでエラーメッセージを表示
-                if (!context.mounted) return;
-
-                showDialog(
-                  context: context,
-                  builder: (BuildContext context) {
-                    return AlertDialog(
-                      title: const Text('エラー'),
-                      content: Text(responseData['reason'] ?? 'ダウンロードに失敗しました'),
-                      actions: <Widget>[
-                        TextButton(
-                          onPressed: () {
-                            Navigator.of(context).pop();
-                          },
-                          child: const Text('閉じる'),
-                        ),
-                      ],
+          onPressed: _isTimeFreeDownloading
+              ? null
+              : () async {
+                  setState(() {
+                    _isTimeFreeDownloading = true;
+                  });
+                  try {
+                    // ダウンロードサービスを初期化
+                    final downloadService = DownloadService();
+                    await downloadService.init();
+ 
+                    // 既にダウンロード済みかチェック
+                    final existingUrl = await downloadService.getDownloadedUrl(
+                      program.radioChannel.id,
+                      program.ft,
                     );
-                  },
-                );
-              }
-            } catch (e) {
-              // 通信エラーなどの例外処理
-              if (!context.mounted) return;
-
-              showDialog(
-                context: context,
-                builder: (BuildContext context) {
-                  return AlertDialog(
-                    title: const Text('エラー'),
-                    content: Text('通信エラーが発生しました: $e'),
-                    actions: <Widget>[
-                      TextButton(
-                        onPressed: () {
-                          Navigator.of(context).pop();
+ 
+                    if (existingUrl != null) {
+                      Navigator.pop(
+                        context,
+                        'downloads:${program.radioChannel.id}-${program.id}',
+                      );
+                      return;
+                    }
+ 
+                    // ダウンロードAPIにリクエストを送信
+                    final url =
+                        'https://asia-northeast1-hello-radiko.cloudfunctions.net/download_timefree?ft=${program.ft.toString()}%2B09:00&channel=${program.radioChannel.id}';
+ 
+                    try {
+                      final response = await http.get(Uri.parse(url));
+                      final decodedBody = utf8.decode(response.bodyBytes);
+                      final responseData = json.decode(decodedBody);
+ 
+                      if (responseData['status'] == 'success') {
+                        final downloadUrl = responseData['url'];
+ 
+                        await downloadService.saveDownloadedAudio(
+                          program: program,
+                          url: downloadUrl,
+                        );
+ 
+                        if (!context.mounted) return;
+                        Navigator.pop(
+                          context,
+                          'downloads:${program.radioChannel.id}-${program.id}',
+                        );
+                      } else {
+                        if (!context.mounted) return;
+                        showDialog(
+                          context: context,
+                          builder: (BuildContext context) {
+                            return AlertDialog(
+                              title: const Text('エラー'),
+                              content: Text(responseData['reason'] ??
+                                  'ダウンロードに失敗しました'),
+                              actions: <Widget>[
+                                TextButton(
+                                  onPressed: () {
+                                    Navigator.of(context).pop();
+                                  },
+                                  child: const Text('閉じる'),
+                                ),
+                              ],
+                            );
+                          },
+                        );
+                      }
+                    } catch (e) {
+                      if (!context.mounted) return;
+                      showDialog(
+                        context: context,
+                        builder: (BuildContext context) {
+                          return AlertDialog(
+                            title: const Text('エラー'),
+                            content: Text('通信エラーが発生しました: $e'),
+                            actions: <Widget>[
+                              TextButton(
+                                onPressed: () {
+                                  Navigator.of(context).pop();
+                                },
+                                child: const Text('閉じる'),
+                              ),
+                            ],
+                          );
                         },
-                        child: const Text('閉じる'),
-                      ),
-                    ],
-                  );
+                      );
+                    }
+                  } finally {
+                    setState(() {
+                      _isTimeFreeDownloading = false;
+                    });
+                  }
                 },
-              );
-            }
-          },
-          child: const Text('タイムフリーを再生'),
+          child: _isTimeFreeDownloading
+              ? const CircularProgressIndicator(
+                  color: Colors.white,
+                )
+              : const Text('タイムフリーを再生'),
         ),
       ),
     );

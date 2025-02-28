@@ -5,6 +5,7 @@ import 'dart:async';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:hello_radiko_explorer/listen_now_page.dart';
+import 'package:hello_radiko_explorer/program_detail_page.dart';
 
 final RouteObserver<ModalRoute<void>> routeObserver =
     RouteObserver<ModalRoute<void>>();
@@ -216,57 +217,71 @@ class _DownloadsPageState extends State<DownloadsPage>
                 subtitle: Text(
                   'ダウンロード日時: ${DateFormat('yyyy/MM/dd HH:mm').format(downloadAt)}',
                 ),
-                trailing: _playLoading && _playingDownloadId == downloadId
-                    ? const SizedBox(
-                        width: 24,
-                        height: 24,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : _isAudioPlaying && _playingDownloadId == downloadId
-                        ? const Icon(Icons.stop)
-                        : const Icon(Icons.play_arrow),
-                onTap: () async {
-                  final downloadId =
-                      "${download.radioChannel.id}-${download.ft.toIso8601String()}";
-                  if (_isAudioPlaying && _playingDownloadId == downloadId) {
-                    await AudioService.stop();
+                trailing: IconButton(
+                  icon: _playLoading && _playingDownloadId == downloadId
+                      ? const SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : _isAudioPlaying && _playingDownloadId == downloadId
+                          ? const Icon(Icons.stop)
+                          : const Icon(Icons.play_arrow),
+                  onPressed: () async {
+                    final downloadId =
+                        "${download.radioChannel.id}-${download.ft.toIso8601String()}";
+                    if (_isAudioPlaying && _playingDownloadId == downloadId) {
+                      await AudioService.stop();
+                      setState(() {
+                        _isAudioPlaying = false;
+                        _playingDownloadId = null;
+                      });
+                      return;
+                    }
                     setState(() {
-                      _isAudioPlaying = false;
-                      _playingDownloadId = null;
+                      _playLoading = true;
+                      _playingDownloadId = downloadId;
                     });
-                    return;
-                  }
-                  setState(() {
-                    _playLoading = true;
-                    _playingDownloadId = downloadId;
-                  });
-                  final channelId = download.radioChannel.id;
-                  final ft = download.ft;
-                  bool playSuccess = false;
-                  final downloadedAudio = await DownloadService()
-                      .getDownloadedAudio(channelId, ft);
-                  if (downloadedAudio != null) {
-                    await AudioService.playAudioData(downloadedAudio);
-                    playSuccess = true;
-                  } else {
-                    final url = await DownloadService().getDownloadedUrl(
-                      channelId,
-                      ft,
-                    );
-                    if (url != null) {
-                      await AudioService.playAudioData(url);
+                    final channelId = download.radioChannel.id;
+                    final ft = download.ft;
+                    bool playSuccess = false;
+                    final downloadedAudio = await DownloadService()
+                        .getDownloadedAudio(channelId, ft);
+                    if (downloadedAudio != null) {
+                      await AudioService.playAudioData(downloadedAudio);
                       playSuccess = true;
                     } else {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('再生する音声が見つかりません')),
+                      final url = await DownloadService().getDownloadedUrl(
+                        channelId,
+                        ft,
                       );
+                      if (url != null) {
+                        await AudioService.playAudioData(url);
+                        playSuccess = true;
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                              content: Text('再生する音声が見つかりません')),
+                        );
+                      }
                     }
-                  }
-                  setState(() {
-                    _playLoading = false;
-                    _isAudioPlaying = playSuccess;
-                    _playingDownloadId = playSuccess ? downloadId : null;
-                  });
+                    setState(() {
+                      _playLoading = false;
+                      _isAudioPlaying = playSuccess;
+                      _playingDownloadId = playSuccess ? downloadId : null;
+                    });
+                  },
+                ),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ProgramDetailPage(
+                        program: download,
+                        openRadikoInApp: false,
+                      ),
+                    ),
+                  );
                 },
               ),
             ),
