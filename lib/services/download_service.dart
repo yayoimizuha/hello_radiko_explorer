@@ -126,4 +126,9 @@ class DownloadService {
       await init();
     }
   }
+  Future<void> deleteDownload(String channelId, DateTime ft) async {
+    await _ensureInitialized();
+    final key = _generateKey(channelId, ft);
+    await _store.record(key).delete(_database!);
+  }
 }
