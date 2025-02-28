@@ -1,6 +1,7 @@
 import 'package:audioplayers/audioplayers.dart';
 import 'dart:typed_data';
 import 'dart:convert';
+import 'dart:isolate';
 
 class AudioService {
   static final AudioPlayer _audioPlayer = AudioPlayer();
@@ -10,8 +11,8 @@ class AudioService {
       await _audioPlayer.play(BytesSource(audioData));
     } else if (audioData is String) {
       try {
-        // Try to decode base64 encoded string.
-        Uint8List decodedData = base64.decode(audioData);
+        // Asynchronously decode base64 encoded string in a separate isolate.
+        Uint8List decodedData = await _decodeBase64(audioData);
         await _audioPlayer.play(BytesSource(decodedData));
       } catch (_) {
         // If decoding fails, assume it's a URL or file path.
@@ -20,6 +21,19 @@ class AudioService {
     } else {
       throw Exception("Unsupported audioData format");
     }
+  }
+
+  static Future<Uint8List> _decodeBase64(String data) async {
+    final receivePort = ReceivePort();
+    await Isolate.spawn(_base64DecodeIsolate, [receivePort.sendPort, data]);
+    return await receivePort.first as Uint8List;
+  }
+
+  static void _base64DecodeIsolate(List<dynamic> args) {
+    SendPort sendPort = args[0];
+    String data = args[1];
+    final decoded = base64.decode(data);
+    sendPort.send(decoded);
   }
 
   static Future<void> pause() async {

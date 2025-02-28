@@ -35,8 +35,8 @@ class _ProgramDetailPageState extends State<ProgramDetailPage> {
   @override
   Widget build(BuildContext context) {
     final program = widget.program;
-    print(program.info?.replaceAll(RegExp(r'^\s+', multiLine: true), '\n'));
-    print(program.desc?.replaceAll(RegExp(r'^\s+', multiLine: true), '\n'));
+    // print(program.info?.replaceAll(RegExp(r'^\s+', multiLine: true), '\n'));
+    // print(program.desc?.replaceAll(RegExp(r'^\s+', multiLine: true), '\n'));
 
     return Scaffold(
       appBar: AppBar(
@@ -293,7 +293,9 @@ class _ProgramDetailPageState extends State<ProgramDetailPage> {
 
                 if (!context.mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('音声ファイルをダウンロードしました。「ダウンロード済み」タブから再生できます。')),
+                  const SnackBar(
+                    content: Text('音声ファイルをダウンロードしました。「ダウンロード済み」タブから再生できます。'),
+                  ),
                 );
               } else {
                 // エラーの場合、ポップアップでエラーメッセージを表示

@@ -120,7 +120,9 @@ Future<List<(RadioProgram, String)>> getFirebaseStruct(String name) async {
       '/hello-radiko-data/programs/$name',
     );
 
-    QuerySnapshot querySnapshot = await programsCollection.get();
+    final oneWeekAgo = DateTime.now().subtract(const Duration(days: 7));
+    QuerySnapshot querySnapshot =
+        await programsCollection.where('to', isGreaterThan: oneWeekAgo).get();
 
     if (querySnapshot.docs.isNotEmpty) {
       // ドキュメントが複数存在する場合は、すべてのドキュメントをリストで返す
@@ -305,6 +307,10 @@ class _ListenNowPageState extends State<ListenNowPage> {
                                 DateTime.now().isBefore(program.$1.to)
                             ? 2
                             : 1,
+                    style:
+                        DateTime.now().isBefore(program.$1.to)
+                            ? BorderStyle.none
+                            : BorderStyle.solid,
                   ),
                 ),
                 child: Row(
