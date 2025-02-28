@@ -51,8 +51,8 @@ class RadioProgram {
         json['radio_channel'] as Map<String, dynamic>,
       ),
       id: json['id'],
-      ft: (json['ft'] as Timestamp).toDate(),
-      to: (json['to'] as Timestamp).toDate(),
+      ft: json['ft'] is String ? DateTime.parse(json['ft']) : (json['ft'] as Timestamp).toDate(),
+      to: json['to'] is String ? DateTime.parse(json['to']) : (json['to'] as Timestamp).toDate(),
       dur: json['dur'],
       title: json['title'],
       img: json['img'],
@@ -63,8 +63,25 @@ class RadioProgram {
           (json['on_air_music'] as List<dynamic>)
               .map((e) => OnAirMusic.fromJson(e as Map<String, dynamic>))
               .toList(),
-      expireAt: (json['expire_at'] as Timestamp).toDate(),
+      expireAt: json['expire_at'] is String ? DateTime.parse(json['expire_at']) : (json['expire_at'] as Timestamp).toDate(),
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'radio_channel': radioChannel.toJson(),
+      'id': id,
+      'ft': ft.toIso8601String(),
+      'to': to.toIso8601String(),
+      'dur': dur,
+      'title': title,
+      'img': img,
+      'info': info,
+      'desc': desc,
+      'pfm': pfm,
+      'on_air_music': onAirMusic.map((m) => m.toJson()).toList(),
+      'expire_at': expireAt.toIso8601String(),
+    };
   }
 }
 
@@ -89,6 +106,10 @@ class RadioChannel {
       areaId: json['area_id'],
     );
   }
+
+  Map<String, dynamic> toJson() {
+    return {'id': id, 'name': name, 'banner_url': bannerUrl, 'area_id': areaId};
+  }
 }
 
 class OnAirMusic {
@@ -111,6 +132,14 @@ class OnAirMusic {
       startTime: json['start_time'],
       musicTitle: json['music_title'],
     );
+  }
+  Map<String, dynamic> toJson() {
+    return {
+      'artist_name': artistName,
+      'artwork_url': artworkUrl,
+      'start_time': startTime,
+      'music_title': musicTitle,
+    };
   }
 }
 

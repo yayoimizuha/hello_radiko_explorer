@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:typed_data';
 import 'dart:convert';
+import 'package:hello_radiko_explorer/listen_now_page.dart';
 import 'package:sembast_web/sembast_web.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
@@ -30,11 +31,8 @@ class DownloadService {
 
   // 音声ファイルをダウンロードしてデータベースに保存
   Future<void> saveDownloadedAudio({
-    required String programId,
-    required String channelId,
-    required DateTime ft,
+    required RadioProgram program,
     required String url,
-    required String title,
   }) async {
     await _ensureInitialized();
     isDownloading.value = true;
@@ -49,14 +47,10 @@ class DownloadService {
         final base64Audio = base64Encode(audioData);
 
         // データベースに保存（BLOB形式としてbase64エンコード済みの値を保存）
-        final key = _generateKey(channelId, ft);
+        final key = _generateKey(program.radioChannel.id, program.ft);
         await _store.record(key).put(_database!, {
-          'programId': programId,
-          'channelId': channelId,
-          'ft': ft.toIso8601String(),
-          'url': url, // 元のURLも保存しておく
-          'audioData': base64Audio, // 音声データをbase64エンコードして保存
-          'title': title, // タイトルも保存
+          'radioProgram': program.toJson(),
+          'audioData': base64Audio,
           'downloadedAt': DateTime.now().toIso8601String(),
         });
       } else {
@@ -98,18 +92,23 @@ class DownloadService {
   }
 
   // すべてのダウンロード済みタイムフリーを取得
-  Future<List<Map<String, dynamic>>> getAllDownloads() async {
+  Future<List<(RadioProgram, DateTime)>> getAllDownloads() async {
     await _ensureInitialized();
 
     final records = await _store.find(_database!);
-    // audioDataはサイズが大きいため、一覧表示用には除外する
-    List<Map<String, dynamic>> ret = [];
+    List<(RadioProgram, DateTime)> ret = [];
     for (var record in records) {
       final value = Map<String, dynamic>.from(record.value);
+      // ダウンロード済みであることを確認
       if (value.containsKey('audioData')) {
-        value['hasAudioData'] = true;
-        value.remove('audioData');
-        ret.add(value);
+        final radioProgramJson = value['radioProgram'];
+        // print(radioProgramJson);
+        if (radioProgramJson != null) {
+          ret.add((
+            RadioProgram.fromJson(radioProgramJson),
+            DateTime.parse(value['downloadedAt']),
+          ));
+        }
       }
       await Future.delayed(Duration(milliseconds: 100)); // イベントループに制御を渡す
     }

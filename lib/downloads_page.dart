@@ -4,6 +4,7 @@ import 'package:hello_radiko_explorer/services/audio_service.dart';
 import 'dart:async';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:hello_radiko_explorer/listen_now_page.dart';
 
 final RouteObserver<ModalRoute<void>> routeObserver =
     RouteObserver<ModalRoute<void>>();
@@ -19,7 +20,7 @@ class DownloadsPage extends StatefulWidget {
 class _DownloadsPageState extends State<DownloadsPage>
     with RouteAware, WidgetsBindingObserver {
   final DownloadService _downloadService = DownloadService();
-  List<Map<String, dynamic>> _downloads = [];
+  List<(RadioProgram, DateTime)> _downloads = [];
   bool _isLoading = true;
 
   String? _playingDownloadId;
@@ -38,7 +39,6 @@ class _DownloadsPageState extends State<DownloadsPage>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // RouteObserverに自身を登録
     routeObserver.subscribe(this, ModalRoute.of(context)!);
     _syncAudioState();
   }
@@ -71,7 +71,6 @@ class _DownloadsPageState extends State<DownloadsPage>
       });
       if (widget.programId != null) {
         String targetId = widget.programId!;
-        // もし "downloads:" プレフィックスが含まれていれば除去
         if (targetId.startsWith("downloads:")) {
           targetId = targetId.replaceFirst("downloads:", "");
         }
@@ -79,10 +78,10 @@ class _DownloadsPageState extends State<DownloadsPage>
         await Future.delayed(const Duration(seconds: 1));
         try {
           final matching = _downloads.firstWhere(
-            (d) => "${d['channelId']}-${d['programId']}" == targetId,
+            (d) => "${d.$1.radioChannel.id}-${d.$1.id}" == targetId,
           );
           print("Auto-play: Found matching download: $matching");
-          await _playDownload(matching);
+          await _playDownload(matching.$1);
         } catch (e) {
           print("Auto-play: Matching download not found: $e");
         }
@@ -92,16 +91,16 @@ class _DownloadsPageState extends State<DownloadsPage>
         _isLoading = false;
       });
       if (!mounted) return;
-
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('ダウンロード一覧の取得に失敗しました: $e')));
     }
   }
 
-  Future<void> _playDownload(Map<String, dynamic> download) async {
+  Future<void> _playDownload(RadioProgram download) async {
     print("Auto-play _playDownload called with download: $download");
-    final downloadId = "${download['channelId']}-${download['ft']}";
+    final downloadId =
+        "${download.radioChannel.id}-${download.ft.toIso8601String()}";
     if (_isAudioPlaying && _playingDownloadId == downloadId) {
       await AudioService.stop();
       setState(() {
@@ -115,9 +114,8 @@ class _DownloadsPageState extends State<DownloadsPage>
       _playingDownloadId = downloadId;
     });
     AudioService.currentPlayingDownloadId = downloadId;
-    // AudioService.currentPlayingDownloadId = downloadId;
-    final channelId = download['channelId'];
-    final ft = DateTime.parse(download['ft']);
+    final channelId = download.radioChannel.id;
+    final ft = download.ft;
     bool playSuccess = false;
     final downloadedAudio = await DownloadService().getDownloadedAudio(
       channelId,
@@ -146,7 +144,6 @@ class _DownloadsPageState extends State<DownloadsPage>
 
   @override
   void didPopNext() {
-    // 別タブから戻ってきたときにオーディオ状態を再同期し、UIを更新します
     _syncAudioState().then((_) {
       setState(() {});
     });
@@ -154,7 +151,6 @@ class _DownloadsPageState extends State<DownloadsPage>
 
   @override
   void dispose() {
-    // RouteObserverから自身の購読を解除します
     routeObserver.unsubscribe(this);
     super.dispose();
   }
@@ -169,10 +165,9 @@ class _DownloadsPageState extends State<DownloadsPage>
       return const Center(child: Text('ダウンロード済みのタイムフリーはありません'));
     }
 
-    // 日付の降順でソート
     _downloads.sort((a, b) {
-      final dateA = DateTime.parse(a['ft']);
-      final dateB = DateTime.parse(b['ft']);
+      final dateA = a.$1.ft;
+      final dateB = b.$1.ft;
       return dateB.compareTo(dateA);
     });
 
@@ -181,10 +176,12 @@ class _DownloadsPageState extends State<DownloadsPage>
       child: ListView.builder(
         itemCount: _downloads.length,
         itemBuilder: (context, index) {
-          final download = _downloads[index];
-          final ft = DateTime.parse(download['ft']);
-          final downloadedAt = DateTime.parse(download['downloadedAt']);
-          final downloadId = "${download['channelId']}-${download['ft']}";
+          final download = _downloads[index].$1;
+          final downloadAt = _downloads[index].$2;
+          final ft = download.ft;
+          // final downloadedAt = download.downloadedAt;
+          final downloadId =
+              "${download.radioChannel.id}-${download.ft.toIso8601String()}";
           final isPlayingDownload =
               _isAudioPlaying && _playingDownloadId == downloadId;
 
@@ -199,29 +196,25 @@ class _DownloadsPageState extends State<DownloadsPage>
                     : null,
             child: ListTile(
               title: Text(
-                '${download['title']} - ${DateFormat('MM/dd HH:mm').format(ft)}',
+                '${download.title} - ${DateFormat('MM/dd HH:mm').format(ft)}',
                 style: const TextStyle(fontWeight: FontWeight.bold),
               ),
               subtitle: Text(
-                'ダウンロード日時: ${DateFormat('yyyy/MM/dd HH:mm').format(downloadedAt)}',
+                'ダウンロード日時: ${DateFormat('yyyy/MM/dd HH:mm').format(downloadAt)}',
               ),
               trailing:
-                  _playLoading &&
-                          _playingDownloadId ==
-                              "${download['channelId']}-${download['ft']}"
+                  _playLoading && _playingDownloadId == downloadId
                       ? const SizedBox(
                         width: 24,
                         height: 24,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                      : _isAudioPlaying &&
-                          _playingDownloadId ==
-                              "${download['channelId']}-${download['ft']}"
+                      : _isAudioPlaying && _playingDownloadId == downloadId
                       ? const Icon(Icons.stop)
                       : const Icon(Icons.play_arrow),
               onTap: () async {
-                final downloadId = "${download['channelId']}-${download['ft']}";
-                // If tapped download is currently playing, stop it.
+                final downloadId =
+                    "${download.radioChannel.id}-${download.ft.toIso8601String()}";
                 if (_isAudioPlaying && _playingDownloadId == downloadId) {
                   await AudioService.stop();
                   setState(() {
@@ -230,22 +223,19 @@ class _DownloadsPageState extends State<DownloadsPage>
                   });
                   return;
                 }
-                // Start loading state for the tapped download.
                 setState(() {
                   _playLoading = true;
                   _playingDownloadId = downloadId;
                 });
-                final channelId = download['channelId'];
-                final ft = DateTime.parse(download['ft']);
+                final channelId = download.radioChannel.id;
+                final ft = download.ft;
                 bool playSuccess = false;
-                // Try to obtain the downloaded audio data from storage.
                 final downloadedAudio = await DownloadService()
                     .getDownloadedAudio(channelId, ft);
                 if (downloadedAudio != null) {
                   await AudioService.playAudioData(downloadedAudio);
                   playSuccess = true;
                 } else {
-                  // Fallback: try to get the original URL if audioData is unavailable.
                   final url = await DownloadService().getDownloadedUrl(
                     channelId,
                     ft,

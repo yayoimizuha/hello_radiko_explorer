@@ -288,11 +288,8 @@ class _ProgramDetailPageState extends State<ProgramDetailPage> {
 
                 // Sembastに音声ファイルを保存
                 await downloadService.saveDownloadedAudio(
-                  programId: program.id.toString(),
-                  channelId: program.radioChannel.id,
-                  ft: program.ft,
+                  program: program,
                   url: downloadUrl,
-                  title: program.title,
                 );
 
                 if (!context.mounted) return;
