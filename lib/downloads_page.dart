@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:hello_radiko_explorer/services/download_service.dart';
 import 'package:hello_radiko_explorer/services/audio_service.dart';
+import 'dart:async';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
+
+final RouteObserver<ModalRoute<void>> routeObserver =
+    RouteObserver<ModalRoute<void>>();
 
 class DownloadsPage extends StatefulWidget {
   final String? programId;
@@ -12,7 +16,7 @@ class DownloadsPage extends StatefulWidget {
   State<DownloadsPage> createState() => _DownloadsPageState();
 }
 
-class _DownloadsPageState extends State<DownloadsPage> {
+class _DownloadsPageState extends State<DownloadsPage> with RouteAware, WidgetsBindingObserver {
   final DownloadService _downloadService = DownloadService();
   List<Map<String, dynamic>> _downloads = [];
   bool _isLoading = true;
@@ -20,12 +24,37 @@ class _DownloadsPageState extends State<DownloadsPage> {
   String? _playingDownloadId;
   bool _playLoading = false;
   bool _isAudioPlaying = false;
+  StreamSubscription<dynamic>? _audioPlayerStateSubscription;
 
   @override
   void initState() {
     super.initState();
     print('DownloadsPage: initState, programId = ${widget.programId}');
+    _syncAudioState();
     _loadDownloads();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // RouteObserverに自身を登録
+    routeObserver.subscribe(this, ModalRoute.of(context)!);
+    _syncAudioState();
+  }
+
+  Future<void> _syncAudioState() async {
+    bool playing = false;
+    String? currentId;
+    try {
+      playing = await AudioService.isPlaying();
+      currentId = AudioService.getCurrentPlayingDownloadId();
+    } catch (e) {
+      print("Error syncing audio state: \$e");
+    }
+    setState(() {
+      _isAudioPlaying = playing;
+      _playingDownloadId = currentId;
+    });
   }
 
   Future<void> _loadDownloads() async {
@@ -84,6 +113,8 @@ class _DownloadsPageState extends State<DownloadsPage> {
       _playLoading = true;
       _playingDownloadId = downloadId;
     });
+    AudioService.currentPlayingDownloadId = downloadId;
+    // AudioService.currentPlayingDownloadId = downloadId;
     final channelId = download['channelId'];
     final ft = DateTime.parse(download['ft']);
     bool playSuccess = false;
@@ -113,6 +144,21 @@ class _DownloadsPageState extends State<DownloadsPage> {
   }
 
   @override
+  void didPopNext() {
+    // 別タブから戻ってきたときにオーディオ状態を再同期し、UIを更新します
+    _syncAudioState().then((_) {
+      setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    // RouteObserverから自身の購読を解除します
+    routeObserver.unsubscribe(this);
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     if (_isLoading) {
       return const Center(child: CircularProgressIndicator());
@@ -137,9 +183,15 @@ class _DownloadsPageState extends State<DownloadsPage> {
           final download = _downloads[index];
           final ft = DateTime.parse(download['ft']);
           final downloadedAt = DateTime.parse(download['downloadedAt']);
-
+          final downloadId = "${download['channelId']}-${download['ft']}";
+          final isPlayingDownload = _isAudioPlaying && _playingDownloadId == downloadId;
+          
           return Card(
             margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            shape: isPlayingDownload ? RoundedRectangleBorder(
+              side: const BorderSide(color: Colors.pink, width: 2),
+              borderRadius: BorderRadius.circular(4.0),
+            ) : null,
             child: ListTile(
               title: Text(
                 '${download['title']} - ${DateFormat('MM/dd HH:mm').format(ft)}',

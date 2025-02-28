@@ -5,6 +5,13 @@ import 'dart:isolate';
 
 class AudioService {
   static final AudioPlayer _audioPlayer = AudioPlayer();
+  static String? currentPlayingDownloadId;
+
+  static Future<bool> isPlaying() async {
+    // This is a simple implementation based on our tracking variable.
+    // In a more robust solution, you might use _audioPlayer.onPlayerStateChanged.
+    return currentPlayingDownloadId != null;
+  }
 
   static Future<void> playAudioData(dynamic audioData) async {
     if (audioData is Uint8List) {
@@ -24,16 +31,21 @@ class AudioService {
   }
 
   static Future<Uint8List> _decodeBase64(String data) async {
-    final receivePort = ReceivePort();
-    await Isolate.spawn(_base64DecodeIsolate, [receivePort.sendPort, data]);
-    return await receivePort.first as Uint8List;
-  }
+    const chunkSize = 1024 * 256;
+    final fullBuffer = BytesBuilder(copy: false);
 
-  static void _base64DecodeIsolate(List<dynamic> args) {
-    SendPort sendPort = args[0];
-    String data = args[1];
-    final decoded = base64.decode(data);
-    sendPort.send(decoded);
+    for (int i = 0; i < data.length; i += chunkSize) {
+      final part = data.substring(
+        i,
+        i + chunkSize < data.length ? i + chunkSize : data.length,
+      );
+      Uint8List decodedPart = base64Decode(part);
+      fullBuffer.add(decodedPart);
+      await Future.delayed(Duration(milliseconds: 2));
+      // print('Delay finished for chunk from $i');
+    }
+
+    return fullBuffer.toBytes();
   }
 
   static Future<void> pause() async {
@@ -46,6 +58,7 @@ class AudioService {
 
   static Future<void> stop() async {
     await _audioPlayer.stop();
+    currentPlayingDownloadId = null;
   }
 
   // static Future<void> skipForward() async {
@@ -69,6 +82,10 @@ class AudioService {
 
   static Stream<Duration> get positionStream => _audioPlayer.onPositionChanged;
   static Stream<Duration?> get durationStream => _audioPlayer.onDurationChanged;
+  static Stream<PlayerState> get playerStateStream =>
+      _audioPlayer.onPlayerStateChanged;
 
-  static Stream<PlayerState> get playerStateStream => _audioPlayer.onPlayerStateChanged;
+  static String? getCurrentPlayingDownloadId() {
+    return currentPlayingDownloadId;
+  }
 }

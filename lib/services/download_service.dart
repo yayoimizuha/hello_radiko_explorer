@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:sembast_web/sembast_web.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
+import 'audio_service.dart';
 
 class DownloadService {
   static final DownloadService _instance = DownloadService._internal();
@@ -69,14 +70,14 @@ class DownloadService {
   }
 
   // 保存した音声データを取得
-  Future<Uint8List?> getDownloadedAudio(String channelId, DateTime ft) async {
+  Future<String?> getDownloadedAudio(String channelId, DateTime ft) async {
     await _ensureInitialized();
 
     final key = _generateKey(channelId, ft);
     final record = await _store.record(key).get(_database!);
 
     if (record != null && record['audioData'] != null) {
-      return base64Decode(record['audioData'] as String);
+      return record['audioData'] as String;
     }
 
     return null;
@@ -102,14 +103,17 @@ class DownloadService {
 
     final records = await _store.find(_database!);
     // audioDataはサイズが大きいため、一覧表示用には除外する
-    return records.map((snapshot) {
-      final value = Map<String, dynamic>.from(snapshot.value);
+    List<Map<String, dynamic>> ret = [];
+    for (var record in records) {
+      final value = Map<String, dynamic>.from(record.value);
       if (value.containsKey('audioData')) {
         value['hasAudioData'] = true;
         value.remove('audioData');
+        ret.add(value);
       }
-      return value;
-    }).toList();
+      await Future.delayed(Duration(milliseconds: 100)); // イベントループに制御を渡す
+    }
+    return ret;
   }
 
   // キーを生成（チャンネルIDと放送日時から一意のキーを作成）
