@@ -4,11 +4,13 @@ import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:hello_radiko_explorer/services/settings_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'program_detail_page.dart';
 
 class ListenNowPage extends StatefulWidget {
-  const ListenNowPage({super.key});
+  final Function(String)? onTabSwitch;
+  const ListenNowPage({super.key, this.onTabSwitch});
 
   @override
   State<ListenNowPage> createState() => _ListenNowPageState();
@@ -49,8 +51,8 @@ class RadioProgram {
         json['radio_channel'] as Map<String, dynamic>,
       ),
       id: json['id'],
-      ft: (json['ft'] as Timestamp).toDate(),
-      to: (json['to'] as Timestamp).toDate(),
+      ft: json['ft'] is String ? DateTime.parse(json['ft']) : (json['ft'] as Timestamp).toDate(),
+      to: json['to'] is String ? DateTime.parse(json['to']) : (json['to'] as Timestamp).toDate(),
       dur: json['dur'],
       title: json['title'],
       img: json['img'],
@@ -61,8 +63,25 @@ class RadioProgram {
           (json['on_air_music'] as List<dynamic>)
               .map((e) => OnAirMusic.fromJson(e as Map<String, dynamic>))
               .toList(),
-      expireAt: (json['expire_at'] as Timestamp).toDate(),
+      expireAt: json['expire_at'] is String ? DateTime.parse(json['expire_at']) : (json['expire_at'] as Timestamp).toDate(),
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'radio_channel': radioChannel.toJson(),
+      'id': id,
+      'ft': ft.toIso8601String(),
+      'to': to.toIso8601String(),
+      'dur': dur,
+      'title': title,
+      'img': img,
+      'info': info,
+      'desc': desc,
+      'pfm': pfm,
+      'on_air_music': onAirMusic.map((m) => m.toJson()).toList(),
+      'expire_at': expireAt.toIso8601String(),
+    };
   }
 }
 
@@ -87,6 +106,10 @@ class RadioChannel {
       areaId: json['area_id'],
     );
   }
+
+  Map<String, dynamic> toJson() {
+    return {'id': id, 'name': name, 'banner_url': bannerUrl, 'area_id': areaId};
+  }
 }
 
 class OnAirMusic {
@@ -110,6 +133,14 @@ class OnAirMusic {
       musicTitle: json['music_title'],
     );
   }
+  Map<String, dynamic> toJson() {
+    return {
+      'artist_name': artistName,
+      'artwork_url': artworkUrl,
+      'start_time': startTime,
+      'music_title': musicTitle,
+    };
+  }
 }
 
 Future<List<(RadioProgram, String)>> getFirebaseStruct(String name) async {
@@ -119,7 +150,9 @@ Future<List<(RadioProgram, String)>> getFirebaseStruct(String name) async {
       '/hello-radiko-data/programs/$name',
     );
 
-    QuerySnapshot querySnapshot = await programsCollection.get();
+    final oneWeekAgo = DateTime.now().subtract(const Duration(days: 7));
+    QuerySnapshot querySnapshot =
+        await programsCollection.where('to', isGreaterThan: oneWeekAgo).get();
 
     if (querySnapshot.docs.isNotEmpty) {
       // ドキュメントが複数存在する場合は、すべてのドキュメントをリストで返す
@@ -140,6 +173,7 @@ Future<List<(RadioProgram, String)>> getFirebaseStruct(String name) async {
 }
 
 class _ListenNowPageState extends State<ListenNowPage> {
+  final settingsService = SettingsService();
   List<String> _selectedMembers = [];
   List<String> _selectedGroups = [];
   final List<String> _allSelectedItems = [];
@@ -151,6 +185,7 @@ class _ListenNowPageState extends State<ListenNowPage> {
     super.initState();
     _scrollController = ScrollController();
     _loadSelectedMembersAndGroups().then((_) {
+      if (!mounted) return;
       // 現在時刻を含む番組のインデックスを検索
       final now = DateTime.now();
       int initialIndex = _allRadioPrograms.indexWhere(
@@ -215,7 +250,9 @@ class _ListenNowPageState extends State<ListenNowPage> {
         _allSelectedItems.addAll(_selectedGroups);
         _allSelectedItems.addAll(_selectedMembers);
       });
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
 
       // _allSelectedItems の内容を一つずつ getFirebaseStruct に与えて、その戻り値を _allRadioPrograms に入力
       List<(RadioProgram, String)> programs_1 = [];
@@ -242,16 +279,19 @@ class _ListenNowPageState extends State<ListenNowPage> {
       }
       programs_2.sort((a, b) => b.$1.ft.compareTo(a.$1.ft));
 
-      setState(() {
-        _allRadioPrograms = programs_2;
-      });
-      if (!mounted) return;
+      if (mounted) {
+        setState(() {
+          _allRadioPrograms = programs_2;
+        });
+      }
     } catch (e) {
       print('Error loading selections: $e');
-      setState(() {
-        _selectedMembers = [];
-        _selectedGroups = [];
-      });
+      if (mounted) {
+        setState(() {
+          _selectedMembers = [];
+          _selectedGroups = [];
+        });
+      }
     }
   }
 
@@ -272,14 +312,20 @@ class _ListenNowPageState extends State<ListenNowPage> {
               bottom: 4.0,
             ),
             child: GestureDetector(
-              onTap: () {
-                Navigator.push(
+              onTap: () async {
+                final result = await Navigator.push(
                   context,
                   MaterialPageRoute(
                     builder:
-                        (context) => ProgramDetailPage(program: program.$1),
+                        (context) => ProgramDetailPage(
+                          program: program.$1,
+                          openRadikoInApp: settingsService.openRadikoInApp,
+                        ),
                   ),
                 );
+                if (result != null) {
+                  widget.onTabSwitch?.call(result);
+                }
               },
               child: Container(
                 decoration: BoxDecoration(
@@ -294,6 +340,10 @@ class _ListenNowPageState extends State<ListenNowPage> {
                                 DateTime.now().isBefore(program.$1.to)
                             ? 2
                             : 1,
+                    style:
+                        DateTime.now().isBefore(program.$1.to)
+                            ? BorderStyle.none
+                            : BorderStyle.solid,
                   ),
                 ),
                 child: Row(
