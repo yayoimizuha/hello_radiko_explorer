@@ -266,7 +266,10 @@ class _ProgramDetailPageState extends State<ProgramDetailPage> {
 
             if (existingUrl != null) {
               // 既にダウンロード済みの場合は、戻り値でダウンロード済みタブに切り替え、該当番組の識別子を返す
-              Navigator.pop(context, 'downloads:${program.radioChannel.id}');
+              Navigator.pop(
+                context,
+                'downloads:${program.radioChannel.id}-${program.id}',
+              );
               return;
             }
 
@@ -298,7 +301,10 @@ class _ProgramDetailPageState extends State<ProgramDetailPage> {
                 // content: Text('音声ファイルをダウンロードしました。「ダウンロード済み」タブから再生できます。'),
                 // ),
                 // );
-                Navigator.pop(context, 'downloads:${program.radioChannel.id}');
+                Navigator.pop(
+                  context,
+                  'downloads:${program.radioChannel.id}-${program.id}',
+                );
               } else {
                 // エラーの場合、ポップアップでエラーメッセージを表示
                 if (!context.mounted) return;

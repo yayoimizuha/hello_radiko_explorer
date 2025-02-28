@@ -16,7 +16,8 @@ class DownloadsPage extends StatefulWidget {
   State<DownloadsPage> createState() => _DownloadsPageState();
 }
 
-class _DownloadsPageState extends State<DownloadsPage> with RouteAware, WidgetsBindingObserver {
+class _DownloadsPageState extends State<DownloadsPage>
+    with RouteAware, WidgetsBindingObserver {
   final DownloadService _downloadService = DownloadService();
   List<Map<String, dynamic>> _downloads = [];
   bool _isLoading = true;
@@ -78,7 +79,7 @@ class _DownloadsPageState extends State<DownloadsPage> with RouteAware, WidgetsB
         await Future.delayed(const Duration(seconds: 1));
         try {
           final matching = _downloads.firstWhere(
-            (d) => d['channelId'] == targetId,
+            (d) => "${d['channelId']}-${d['programId']}" == targetId,
           );
           print("Auto-play: Found matching download: $matching");
           await _playDownload(matching);
@@ -184,14 +185,18 @@ class _DownloadsPageState extends State<DownloadsPage> with RouteAware, WidgetsB
           final ft = DateTime.parse(download['ft']);
           final downloadedAt = DateTime.parse(download['downloadedAt']);
           final downloadId = "${download['channelId']}-${download['ft']}";
-          final isPlayingDownload = _isAudioPlaying && _playingDownloadId == downloadId;
-          
+          final isPlayingDownload =
+              _isAudioPlaying && _playingDownloadId == downloadId;
+
           return Card(
             margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-            shape: isPlayingDownload ? RoundedRectangleBorder(
-              side: const BorderSide(color: Colors.pink, width: 2),
-              borderRadius: BorderRadius.circular(4.0),
-            ) : null,
+            shape:
+                isPlayingDownload
+                    ? RoundedRectangleBorder(
+                      side: const BorderSide(color: Colors.pink, width: 2),
+                      borderRadius: BorderRadius.circular(4.0),
+                    )
+                    : null,
             child: ListTile(
               title: Text(
                 '${download['title']} - ${DateFormat('MM/dd HH:mm').format(ft)}',
