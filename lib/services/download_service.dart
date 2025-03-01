@@ -1,11 +1,9 @@
 import 'dart:async';
-import 'dart:typed_data';
 import 'dart:convert';
 import 'package:hello_radiko_explorer/listen_now_page.dart';
 import 'package:sembast_web/sembast_web.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
-import 'audio_service.dart';
 
 class DownloadService {
   static final DownloadService _instance = DownloadService._internal();

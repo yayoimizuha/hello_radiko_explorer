@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:web/web.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
 
 class SettingsService {
   static final SettingsService _instance = SettingsService._internal();
@@ -82,11 +83,33 @@ class SettingsService {
   }
 
   Future<void> setMemberSelection(String member, bool value) async {
+    if (value) {
+      await FirebaseAnalytics.instance.logEvent(
+        name: "member_register",
+        parameters: {"member_name": member},
+      );
+    } else {
+      await FirebaseAnalytics.instance.logEvent(
+        name: "member_unregister",
+        parameters: {"member_name": member},
+      );
+    }
     _memberSelections[member] = value;
     await _prefs.setString('memberSelections', jsonEncode(_memberSelections));
   }
 
   Future<void> setGroupSelection(String group, bool value) async {
+    if (value) {
+      await FirebaseAnalytics.instance.logEvent(
+        name: "group_register",
+        parameters: {"group_name": group},
+      );
+    } else {
+      await FirebaseAnalytics.instance.logEvent(
+        name: "group_unregister",
+        parameters: {"group_name": group},
+      );
+    }
     _groupSelections[group] = value;
     await _prefs.setString('groupSelections', jsonEncode(_groupSelections));
   }

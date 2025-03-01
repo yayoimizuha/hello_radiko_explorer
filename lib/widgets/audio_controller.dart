@@ -1,9 +1,11 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:hello_radiko_explorer/services/audio_service.dart';
 import 'package:audioplayers/audioplayers.dart';
 
 class AudioController extends StatefulWidget {
-  const AudioController({Key? key}) : super(key: key);
+  const AudioController({super.key});
 
   @override
   _AudioControllerState createState() => _AudioControllerState();
@@ -65,7 +67,10 @@ class _AudioControllerState extends State<AudioController> {
                             context,
                           ).copyWith(trackHeight: 4.0),
                           child: Slider(
-                            value: position.inSeconds.toDouble(),
+                            value: min(
+                              position.inSeconds.toDouble(),
+                              duration.inSeconds.toDouble(),
+                            ),
                             min: 0,
                             max: duration.inSeconds.toDouble(),
                             onChanged: (value) async {

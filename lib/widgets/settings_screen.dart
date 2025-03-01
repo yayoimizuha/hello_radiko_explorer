@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:hello_radiko_explorer/services/settings_service.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
 
 Future<Map<String, List<String>>> loadMembers() async {
   final String jsonString = await rootBundle.loadString('lib/members.json');
@@ -24,6 +25,12 @@ class _SettingsPageState extends State<SettingsPage> {
   void initState() {
     super.initState();
     _settings.init();
+    Future(() async {
+      await FirebaseAnalytics.instance.logEvent(
+        name: "open_tab",
+        parameters: {"tab_name": "settings"},
+      );
+    });
   }
 
   @override

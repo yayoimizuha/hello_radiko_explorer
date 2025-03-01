@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:hello_radiko_explorer/services/download_service.dart';
 import 'package:hello_radiko_explorer/services/audio_service.dart';
+import 'package:audioplayers/audioplayers.dart';
 import 'dart:async';
 import 'package:intl/intl.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:hello_radiko_explorer/listen_now_page.dart';
 import 'package:hello_radiko_explorer/program_detail_page.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
 
 final RouteObserver<ModalRoute<void>> routeObserver =
     RouteObserver<ModalRoute<void>>();
@@ -27,14 +28,33 @@ class _DownloadsPageState extends State<DownloadsPage>
   String? _playingDownloadId;
   bool _playLoading = false;
   bool _isAudioPlaying = false;
+  bool _isPlayingAll = false;
   StreamSubscription<dynamic>? _audioPlayerStateSubscription;
 
   @override
   void initState() {
     super.initState();
+    Future(() async {
+      await FirebaseAnalytics.instance.logEvent(
+        name: "open_tab",
+        parameters: {"tab_name": "downloaded"},
+      );
+    });
     print('DownloadsPage: initState, programId = ${widget.programId}');
     _syncAudioState();
     _loadDownloads();
+    _audioPlayerStateSubscription = AudioService.playerStateStream.listen((
+      state,
+    ) {
+      setState(() {
+        if (state == PlayerState.playing) {
+          _isAudioPlaying = true;
+        } else {
+          _isAudioPlaying = false;
+          _playingDownloadId = null;
+        }
+      });
+    });
   }
 
   @override
@@ -124,6 +144,11 @@ class _DownloadsPageState extends State<DownloadsPage>
     );
     if (downloadedAudio != null) {
       await AudioService.playAudioData(downloadedAudio);
+      await FirebaseAnalytics.instance.logEvent(
+        name: "play_downloaded",
+        parameters: {"id": download.id},
+      );
+
       playSuccess = true;
     } else {
       final url = await DownloadService().getDownloadedUrl(channelId, ft);
@@ -143,6 +168,37 @@ class _DownloadsPageState extends State<DownloadsPage>
     });
   }
 
+  Future<void> _playAllDownloads() async {
+    await FirebaseAnalytics.instance.logEvent(name: "play_downloaded_all");
+
+    setState(() {
+      _isPlayingAll = true;
+    });
+    for (final tuple in _downloads) {
+      if (!_isPlayingAll) break;
+      await _playDownload(tuple.$1);
+      // 現在再生中の音声が終了するまで待機してから次の音声を再生する
+      while (_isAudioPlaying) {
+        await Future.delayed(const Duration(seconds: 1));
+      }
+    }
+    setState(() {
+      _isPlayingAll = false;
+    });
+  }
+
+  Future<void> _deleteAllDownloads() async {
+    for (var tuple in List.from(_downloads)) {
+      await DownloadService().deleteDownload(
+        tuple.$1.radioChannel.id,
+        tuple.$1.ft,
+      );
+    }
+    setState(() {
+      _downloads.clear();
+    });
+  }
+
   @override
   void didPopNext() {
     _syncAudioState().then((_) {
@@ -153,6 +209,7 @@ class _DownloadsPageState extends State<DownloadsPage>
   @override
   void dispose() {
     routeObserver.unsubscribe(this);
+    _audioPlayerStateSubscription?.cancel();
     super.dispose();
   }
 
@@ -175,12 +232,33 @@ class _DownloadsPageState extends State<DownloadsPage>
     return RefreshIndicator(
       onRefresh: _loadDownloads,
       child: ListView.builder(
-        itemCount: _downloads.length,
+        itemCount: _downloads.length + 1,
         itemBuilder: (context, index) {
-          final download = _downloads[index].$1;
-          final downloadAt = _downloads[index].$2;
+          if (index == 0) {
+            return Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  ElevatedButton(
+                    onPressed: _isPlayingAll ? null : _playAllDownloads,
+                    child: const Text('すべて再生'),
+                  ),
+                  ElevatedButton(
+                    onPressed: _deleteAllDownloads,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red,
+                    ),
+                    child: const Text('すべて削除'),
+                  ),
+                ],
+              ),
+            );
+          }
+          final int itemIndex = index - 1;
+          final download = _downloads[itemIndex].$1;
+          final downloadAt = _downloads[itemIndex].$2;
           final ft = download.ft;
-          // final downloadedAt = download.downloadedAt;
           final downloadId =
               "${download.radioChannel.id}-${download.ft.toIso8601String()}";
           final isPlayingDownload =
@@ -196,19 +274,26 @@ class _DownloadsPageState extends State<DownloadsPage>
               child: const Icon(Icons.delete, color: Colors.white),
             ),
             onDismissed: (direction) async {
-              await DownloadService().deleteDownload(download.radioChannel.id, download.ft);
+              await DownloadService().deleteDownload(
+                download.radioChannel.id,
+                download.ft,
+              );
               setState(() {
-                _downloads.removeAt(index);
+                _downloads.removeAt(itemIndex);
               });
             },
             child: Card(
-              margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-              shape: isPlayingDownload
-                  ? RoundedRectangleBorder(
-                      side: const BorderSide(color: Colors.pink, width: 2),
-                      borderRadius: BorderRadius.circular(4.0),
-                    )
-                  : null,
+              margin: const EdgeInsets.symmetric(
+                horizontal: 16.0,
+                vertical: 8.0,
+              ),
+              shape:
+                  isPlayingDownload
+                      ? RoundedRectangleBorder(
+                        side: const BorderSide(color: Colors.pink, width: 2),
+                        borderRadius: BorderRadius.circular(4.0),
+                      )
+                      : null,
               child: ListTile(
                 title: Text(
                   '${download.title} - ${DateFormat('MM/dd HH:mm').format(ft)}',
@@ -218,23 +303,23 @@ class _DownloadsPageState extends State<DownloadsPage>
                   'ダウンロード日時: ${DateFormat('yyyy/MM/dd HH:mm').format(downloadAt)}',
                 ),
                 trailing: IconButton(
-                  icon: _playLoading && _playingDownloadId == downloadId
-                      ? const SizedBox(
-                          width: 24,
-                          height: 24,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : _isAudioPlaying && _playingDownloadId == downloadId
+                  icon:
+                      _playLoading && _playingDownloadId == downloadId
+                          ? const SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                          : _isAudioPlaying && _playingDownloadId == downloadId
                           ? const Icon(Icons.stop)
                           : const Icon(Icons.play_arrow),
                   onPressed: () async {
                     final downloadId =
                         "${download.radioChannel.id}-${download.ft.toIso8601String()}";
                     if (_isAudioPlaying && _playingDownloadId == downloadId) {
-                      await AudioService.stop();
+                      await AudioService.pause();
                       setState(() {
                         _isAudioPlaying = false;
-                        _playingDownloadId = null;
                       });
                       return;
                     }
@@ -260,8 +345,7 @@ class _DownloadsPageState extends State<DownloadsPage>
                         playSuccess = true;
                       } else {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                              content: Text('再生する音声が見つかりません')),
+                          const SnackBar(content: Text('再生する音声が見つかりません')),
                         );
                       }
                     }
@@ -276,10 +360,11 @@ class _DownloadsPageState extends State<DownloadsPage>
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => ProgramDetailPage(
-                        program: download,
-                        openRadikoInApp: false,
-                      ),
+                      builder:
+                          (context) => ProgramDetailPage(
+                            program: download,
+                            openRadikoInApp: false,
+                          ),
                     ),
                   );
                 },

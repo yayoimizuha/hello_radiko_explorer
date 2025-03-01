@@ -8,8 +8,7 @@ import 'widgets/settings_screen.dart';
 import 'widgets/audio_controller.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'dart:convert';
-import 'package:flutter/services.dart' show rootBundle;
+import 'package:firebase_analytics/firebase_analytics.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -17,6 +16,8 @@ Future<void> main() async {
   FirebaseFirestore.instance.settings = const Settings(
     persistenceEnabled: true,
   );
+  await FirebaseAnalytics.instance.logAppOpen();
+
   await SettingsService().init();
   await DownloadService().init(); // DownloadServiceを初期化
   runApp(const MyApp());

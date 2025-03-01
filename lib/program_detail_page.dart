@@ -3,12 +3,12 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'listen_now_page.dart';
-import 'downloads_page.dart';
 import 'package:intl/intl.dart';
 import 'package:hello_radiko_explorer/services/settings_service.dart';
 import 'package:hello_radiko_explorer/services/download_service.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:firebase_analytics/firebase_analytics.dart';
 
 class ProgramDetailPage extends StatefulWidget {
   final RadioProgram program;
@@ -31,6 +31,18 @@ class _ProgramDetailPageState extends State<ProgramDetailPage> {
   @override
   void initState() {
     super.initState();
+    Future(() async {
+      await FirebaseAnalytics.instance.logEvent(
+        name: "detail_program",
+        parameters: {
+          "id": widget.program.id,
+          "title": widget.program.title,
+          "channel": widget.program.radioChannel.id,
+          "ft": widget.program.ft.toIso8601String(),
+          "to": widget.program.to.toIso8601String(),
+        },
+      );
+    });
     openRadikoInApp = SettingsService().openRadikoInApp;
   }
 
@@ -207,6 +219,14 @@ class _ProgramDetailPageState extends State<ProgramDetailPage> {
                     widget.openRadikoInApp
                         ? 'radiko://radiko.onelink.me/?deep_link_sub1=${program.radioChannel.id}&deep_link_sub2=${DateFormat('yyyyMMddHHmmss').format(program.ft)}&deep_link_value=${program.id}'
                         : 'https://radiko.jp/#!/ts/${program.radioChannel.id}/${DateFormat('yyyyMMddHHmmss').format(program.ft)}';
+                await FirebaseAnalytics.instance.logEvent(
+                  name: "open_external_link",
+                  parameters: {
+                    "id": widget.program.id,
+                    "url": radikoUrl,
+                    "method": widget.openRadikoInApp ? 'アプリ' : 'ブラウザ',
+                  },
+                );
                 await launchUrl(Uri.parse(radikoUrl));
               },
               child: Text('${widget.openRadikoInApp ? 'アプリ' : 'ブラウザ'}で開く'),
@@ -234,6 +254,14 @@ class _ProgramDetailPageState extends State<ProgramDetailPage> {
                 widget.openRadikoInApp
                     ? 'radiko://radiko.onelink.me/?deep_link_sub1=${program.radioChannel.id}&deep_link_sub2=${DateFormat('yyyyMMddHHmmss').format(program.ft)}&deep_link_value=${program.id}'
                     : 'https://radiko.jp/#!/ts/${program.radioChannel.id}/${DateFormat('yyyyMMddHHmmss').format(program.ft)}';
+            await FirebaseAnalytics.instance.logEvent(
+              name: "open_play_now_link",
+              parameters: {
+                "id": widget.program.id,
+                "url": radikoUrl,
+                "method": widget.openRadikoInApp ? 'アプリ' : 'ブラウザ',
+              },
+            );
             await launchUrl(Uri.parse(radikoUrl));
           },
           child: const Text('今すぐ再生'),
@@ -289,6 +317,10 @@ class _ProgramDetailPageState extends State<ProgramDetailPage> {
                         final response = await http.get(Uri.parse(url));
                         final decodedBody = utf8.decode(response.bodyBytes);
                         final responseData = json.decode(decodedBody);
+                        await FirebaseAnalytics.instance.logEvent(
+                          name: "download_timefree",
+                          parameters: {"id": widget.program.id, "url": url},
+                        );
 
                         if (responseData['status'] == 'success') {
                           final downloadUrl = responseData['url'];
