@@ -194,7 +194,7 @@ class _ProgramDetailPageState extends State<ProgramDetailPage> {
         Padding(
           padding: const EdgeInsets.only(right: 8.0),
           child: SizedBox(
-            width: 200,
+            width: 140,
             height: 60,
             child: ElevatedButton(
               style: ElevatedButton.styleFrom(
@@ -246,7 +246,7 @@ class _ProgramDetailPageState extends State<ProgramDetailPage> {
     return Padding(
       padding: const EdgeInsets.only(right: 8.0),
       child: SizedBox(
-        width: 200,
+        width: 140,
         height: 60,
         child: ElevatedButton(
           style: ElevatedButton.styleFrom(
@@ -254,62 +254,85 @@ class _ProgramDetailPageState extends State<ProgramDetailPage> {
               borderRadius: BorderRadius.circular(5),
             ),
           ),
-          onPressed: _isTimeFreeDownloading
-              ? null
-              : () async {
-                  setState(() {
-                    _isTimeFreeDownloading = true;
-                  });
-                  try {
-                    // ダウンロードサービスを初期化
-                    final downloadService = DownloadService();
-                    await downloadService.init();
- 
-                    // 既にダウンロード済みかチェック
-                    final existingUrl = await downloadService.getDownloadedUrl(
-                      program.radioChannel.id,
-                      program.ft,
-                    );
- 
-                    if (existingUrl != null) {
-                      Navigator.pop(
-                        context,
-                        'downloads:${program.radioChannel.id}-${program.id}',
-                      );
-                      return;
-                    }
- 
-                    // ダウンロードAPIにリクエストを送信
-                    final url =
-                        'https://asia-northeast1-hello-radiko.cloudfunctions.net/download_timefree?ft=${program.ft.toString()}%2B09:00&channel=${program.radioChannel.id}';
- 
+          onPressed:
+              _isTimeFreeDownloading
+                  ? null
+                  : () async {
+                    setState(() {
+                      _isTimeFreeDownloading = true;
+                    });
                     try {
-                      final response = await http.get(Uri.parse(url));
-                      final decodedBody = utf8.decode(response.bodyBytes);
-                      final responseData = json.decode(decodedBody);
- 
-                      if (responseData['status'] == 'success') {
-                        final downloadUrl = responseData['url'];
- 
-                        await downloadService.saveDownloadedAudio(
-                          program: program,
-                          url: downloadUrl,
-                        );
- 
-                        if (!context.mounted) return;
+                      // ダウンロードサービスを初期化
+                      final downloadService = DownloadService();
+                      await downloadService.init();
+
+                      // 既にダウンロード済みかチェック
+                      final existingUrl = await downloadService
+                          .getDownloadedUrl(
+                            program.radioChannel.id,
+                            program.ft,
+                          );
+
+                      if (existingUrl != null) {
                         Navigator.pop(
                           context,
                           'downloads:${program.radioChannel.id}-${program.id}',
                         );
-                      } else {
+                        return;
+                      }
+
+                      // ダウンロードAPIにリクエストを送信
+                      final url =
+                          'https://asia-northeast1-hello-radiko.cloudfunctions.net/download_timefree?ft=${program.ft.toString()}%2B09:00&channel=${program.radioChannel.id}';
+
+                      try {
+                        final response = await http.get(Uri.parse(url));
+                        final decodedBody = utf8.decode(response.bodyBytes);
+                        final responseData = json.decode(decodedBody);
+
+                        if (responseData['status'] == 'success') {
+                          final downloadUrl = responseData['url'];
+
+                          await downloadService.saveDownloadedAudio(
+                            program: program,
+                            url: downloadUrl,
+                          );
+
+                          if (!context.mounted) return;
+                          Navigator.pop(
+                            context,
+                            'downloads:${program.radioChannel.id}-${program.id}',
+                          );
+                        } else {
+                          if (!context.mounted) return;
+                          showDialog(
+                            context: context,
+                            builder: (BuildContext context) {
+                              return AlertDialog(
+                                title: const Text('エラー'),
+                                content: Text(
+                                  responseData['reason'] ?? 'ダウンロードに失敗しました',
+                                ),
+                                actions: <Widget>[
+                                  TextButton(
+                                    onPressed: () {
+                                      Navigator.of(context).pop();
+                                    },
+                                    child: const Text('閉じる'),
+                                  ),
+                                ],
+                              );
+                            },
+                          );
+                        }
+                      } catch (e) {
                         if (!context.mounted) return;
                         showDialog(
                           context: context,
                           builder: (BuildContext context) {
                             return AlertDialog(
                               title: const Text('エラー'),
-                              content: Text(responseData['reason'] ??
-                                  'ダウンロードに失敗しました'),
+                              content: Text('通信エラーが発生しました: $e'),
                               actions: <Widget>[
                                 TextButton(
                                   onPressed: () {
@@ -322,37 +345,16 @@ class _ProgramDetailPageState extends State<ProgramDetailPage> {
                           },
                         );
                       }
-                    } catch (e) {
-                      if (!context.mounted) return;
-                      showDialog(
-                        context: context,
-                        builder: (BuildContext context) {
-                          return AlertDialog(
-                            title: const Text('エラー'),
-                            content: Text('通信エラーが発生しました: $e'),
-                            actions: <Widget>[
-                              TextButton(
-                                onPressed: () {
-                                  Navigator.of(context).pop();
-                                },
-                                child: const Text('閉じる'),
-                              ),
-                            ],
-                          );
-                        },
-                      );
+                    } finally {
+                      setState(() {
+                        _isTimeFreeDownloading = false;
+                      });
                     }
-                  } finally {
-                    setState(() {
-                      _isTimeFreeDownloading = false;
-                    });
-                  }
-                },
-          child: _isTimeFreeDownloading
-              ? const CircularProgressIndicator(
-                  color: Colors.white,
-                )
-              : const Text('タイムフリーを再生'),
+                  },
+          child:
+              _isTimeFreeDownloading
+                  ? const CircularProgressIndicator(color: Colors.white)
+                  : const Text('タイムフリーを再生', textAlign: TextAlign.center),
         ),
       ),
     );
