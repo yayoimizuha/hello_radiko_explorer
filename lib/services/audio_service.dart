@@ -15,39 +15,56 @@ class AudioService {
 
   static Future<void> playAudioData(dynamic audioData) async {
     print("audioData.runtimeType:${audioData.runtimeType}");
-    if (audioData is Uint8List) {
-      await _audioPlayer.play(BytesSource(audioData));
-    } else if (audioData is String) {
-      try {
-        // Asynchronously decode base64 encoded string in a separate isolate.
-        Uint8List decodedData = await _decodeBase64(audioData);
-        await _audioPlayer.play(BytesSource(decodedData));
-      } catch (e) {
-        print("_decodeBase64 error: $e");
-        // If decoding fails, assume it's a URL or file path.
-        await _audioPlayer.play(UrlSource(audioData));
+
+    try {
+      // Asynchronously decode base64 encoded string in a separate isolate.
+      if (audioData is Uint8List) {
+        await _audioPlayer.play(BytesSource(audioData));
+      } else if (audioData is String) {
+        if (audioData.startsWith("http")) {
+          await _audioPlayer.play(UrlSource(audioData));
+        } else {
+          Uint8List decodedData = await _decodeBase64(audioData);
+          await _audioPlayer.play(BytesSource(decodedData));
+        }
       }
-    } else {
-      throw Exception("Unsupported audioData format");
+    } catch (e) {
+      print("_decodeBase64 error: $e");
+      // If decoding fails, assume it's a URL or file path.
+      // await _audioPlayer.play(UrlSource(audioData));
     }
   }
 
   static Future<Uint8List> _decodeBase64(String data) async {
-    const chunkSize = 1024 * 256;
-    final fullBuffer = BytesBuilder(copy: false);
-
-    for (int i = 0; i < data.length; i += chunkSize) {
-      final part = data.substring(
-        i,
-        i + chunkSize < data.length ? i + chunkSize : data.length,
-      );
-      Uint8List decodedPart = base64Decode(part);
-      fullBuffer.add(decodedPart);
+    Uint8List? result;
+    final sink = ByteConversionSink.withCallback((bytes) {
+      result = Uint8List.fromList(bytes);
+    });
+    final converter = base64.decoder.startChunkedConversion(sink);
+    String remainder = "";
+    const int chunkSize = 1024 * 256;
+    int pos = 0;
+    while (pos < data.length) {
+      int end = pos + chunkSize;
+      if (end > data.length) {
+        end = data.length;
+      }
+      String chunk = remainder + data.substring(pos, end);
+      int completeLength = chunk.length - (chunk.length % 4);
+      if (completeLength > 0) {
+        converter.add(chunk.substring(0, completeLength));
+        remainder = chunk.substring(completeLength);
+      } else {
+        remainder = chunk;
+      }
+      pos = end;
       await Future.delayed(Duration(milliseconds: 2));
-      // print('Delay finished for chunk from $i');
     }
-
-    return fullBuffer.toBytes();
+    if (remainder.isNotEmpty) {
+      converter.add(remainder);
+    }
+    converter.close();
+    return result!;
   }
 
   static Future<void> pause() async {
