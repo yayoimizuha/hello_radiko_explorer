@@ -14,6 +14,7 @@ class AudioService {
   }
 
   static Future<void> playAudioData(dynamic audioData) async {
+    print("audioData.runtimeType:${audioData.runtimeType}");
     if (audioData is Uint8List) {
       await _audioPlayer.play(BytesSource(audioData));
     } else if (audioData is String) {
@@ -21,7 +22,8 @@ class AudioService {
         // Asynchronously decode base64 encoded string in a separate isolate.
         Uint8List decodedData = await _decodeBase64(audioData);
         await _audioPlayer.play(BytesSource(decodedData));
-      } catch (_) {
+      } catch (e) {
+        print("_decodeBase64 error: $e");
         // If decoding fails, assume it's a URL or file path.
         await _audioPlayer.play(UrlSource(audioData));
       }

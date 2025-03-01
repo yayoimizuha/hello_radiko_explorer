@@ -10,7 +10,9 @@
             "type": "dart",
             "args": [
                 "--web-port",
-                "5555"
+                "5555",
+                "--web-hostname",
+                "0.0.0.0"
             ]
         },
         {
