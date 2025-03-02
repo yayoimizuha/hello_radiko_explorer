@@ -3,6 +3,8 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:web/web.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:sembast/sembast.dart';
+import 'package:sembast_web/sembast_web.dart';
 
 class SettingsService {
   static final SettingsService _instance = SettingsService._internal();
@@ -96,6 +98,7 @@ class SettingsService {
     }
     _memberSelections[member] = value;
     await _prefs.setString('memberSelections', jsonEncode(_memberSelections));
+    saveSubscribedSembast();
   }
 
   Future<void> setGroupSelection(String group, bool value) async {
@@ -112,6 +115,7 @@ class SettingsService {
     }
     _groupSelections[group] = value;
     await _prefs.setString('groupSelections', jsonEncode(_groupSelections));
+    saveSubscribedSembast();
   }
 
   Future<void> setOpenRadikoInApp(bool value) async {
@@ -130,5 +134,38 @@ class SettingsService {
         }
       }
     });
+  }
+
+  // Sembast (IndexedDB) を利用して、選択されたメンバーとグループをカンマ区切りの文字列で保存
+  Database? _subscribedDb;
+  final _subscribedStore = StoreRef<String, String>('subscribed');
+
+  Future<Database> get _sembastDatabase async {
+    if (_subscribedDb == null) {
+      if (kIsWeb) {
+        _subscribedDb = await databaseFactoryWeb.openDatabase('subscribed');
+      } else {
+        // IndexedDBはWeb専用のため、非Web環境では例外を投げます。
+        throw Exception("IndexedDBはWeb環境でのみ利用可能です。");
+      }
+    }
+    return _subscribedDb!;
+  }
+
+  Future<void> saveSubscribedSembast() async {
+    final db = await _sembastDatabase;
+    final selectedMembers = _memberSelections.entries
+        .where((entry) => entry.value)
+        .map((entry) => entry.key);
+    final selectedGroups = _groupSelections.entries
+        .where((entry) => entry.value)
+        .map((entry) => entry.key);
+    final csv = ([...selectedMembers, ...selectedGroups]).join(',');
+    await _subscribedStore.record('subscribed').put(db, csv);
+  }
+
+  Future<String?> loadSubscribedSembast() async {
+    final db = await _sembastDatabase;
+    return await _subscribedStore.record('subscribed').get(db);
   }
 }

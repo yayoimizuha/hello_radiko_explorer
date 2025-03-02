@@ -11,7 +11,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 
-@pragma('vm:')
+@pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
   print("Handling a background message: ${message.messageId}");
@@ -25,12 +25,11 @@ Future<void> main() async {
   );
   await FirebaseAnalytics.instance.logAppOpen();
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
-  FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-    if (message.notification != null) {
-      print("title:${message.notification!.title}");
-      print("body:${message.notification!.body}");
-    }
-  });
+  FirebaseMessaging.instance.getToken(
+    vapidKey:
+        "BOvIveuTRfpNc0ZEzPMtEG8cV-hX2eLTO-nS3NNfe3pbi24-b_TsIQ2JNFpa7kfpeCXc4QMrKte3Arh3562BAc8",
+  );
+
   await SettingsService().init();
   await DownloadService().init(); // DownloadServiceを初期化
   runApp(const MyApp());
@@ -87,6 +86,25 @@ class _MyHomePageState extends State<MyHomePage> {
   int _selectedIndex = 0;
   String? _downloadProgramId;
   final _settings = SettingsService();
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            message.data["title"] +
+                "が間もなく始まります。\n" +
+                message.data["target"] +
+                "が出演します。\n放送開始時刻:" +
+                message.data["ft"],
+          ),
+        ),
+      );
+    });
+  }
 
   void _onItemTapped(int index) {
     print('Tab tapped: $index');

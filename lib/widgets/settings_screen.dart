@@ -196,9 +196,9 @@ class _MembersPageState extends State<MembersPage> {
                       if (newValue != null) {
                         await _settings.setGroupSelection(group, newValue);
                         if (newValue) {
-                          notificationSubscriber(NotifyMode.subscribe, group);
+                          // notificationSubscriber(NotifyMode.subscribe, group);
                         } else {
-                          notificationSubscriber(NotifyMode.unsubscribe, group);
+                          // notificationSubscriber(NotifyMode.unsubscribe, group);
                         }
                         setState(() {});
                       }
@@ -213,15 +213,9 @@ class _MembersPageState extends State<MembersPage> {
                         if (newValue != null) {
                           await _settings.setMemberSelection(member, newValue);
                           if (newValue) {
-                            notificationSubscriber(
-                              NotifyMode.subscribe,
-                              member,
-                            );
+                            // notificationSubscriber(NotifyMode.subscribe,member,);
                           } else {
-                            notificationSubscriber(
-                              NotifyMode.unsubscribe,
-                              member,
-                            );
+                            // notificationSubscriber(NotifyMode.unsubscribe,member);
                           }
                           setState(() {});
                         }
