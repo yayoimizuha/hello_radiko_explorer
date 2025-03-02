@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:hello_radiko_explorer/services/settings_service.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 
 Future<Map<String, List<String>>> loadMembers() async {
   final String jsonString = await rootBundle.loadString('lib/members.json');
@@ -10,6 +13,30 @@ Future<Map<String, List<String>>> loadMembers() async {
   return (jsonResponse as Map<String, dynamic>).map<String, List<String>>(
     (key, value) => MapEntry(key, List<String>.from(value as List)),
   );
+}
+
+enum NotifyMode { subscribe, unsubscribe }
+
+Future<void> notificationSubscriber(NotifyMode mode, String key) async {
+  final url = Uri.https(
+    "register-func-rnfi7uy4qq-an.a.run.app",
+    "/register_func",
+    {
+      "mode": mode == NotifyMode.subscribe ? "subscribe" : "unsubscribe",
+      "key": key,
+      "token": await FirebaseMessaging.instance.getToken(
+        vapidKey:
+            "BOvIveuTRfpNc0ZEzPMtEG8cV-hX2eLTO-nS3NNfe3pbi24-b_TsIQ2JNFpa7kfpeCXc4QMrKte3Arh3562BAc8",
+      ),
+    },
+  );
+  try {
+    final resp = await http.get(url);
+    print("${resp.statusCode},${resp.body}");
+  } catch (e) {
+    print("error:$e");
+    print(url);
+  }
 }
 
 class SettingsPage extends StatefulWidget {
@@ -33,6 +60,41 @@ class _SettingsPageState extends State<SettingsPage> {
     });
   }
 
+  Future<NotificationSettings> _requestNotificationPermission() async {
+    FirebaseMessaging messaging = FirebaseMessaging.instance;
+
+    NotificationSettings settings = await messaging.requestPermission(
+      alert: true,
+      announcement: false,
+      badge: false,
+      carPlay: false,
+      criticalAlert: false,
+      provisional: false,
+      sound: false,
+    );
+    if (settings.authorizationStatus == AuthorizationStatus.authorized) {
+      print('ユーザーは通知を許可しました。');
+      FirebaseMessaging.instance
+          .getToken(
+            vapidKey:
+                "BOvIveuTRfpNc0ZEzPMtEG8cV-hX2eLTO-nS3NNfe3pbi24-b_TsIQ2JNFpa7kfpeCXc4QMrKte3Arh3562BAc8",
+          )
+          .then((token) {
+            print('トークン: $token');
+          });
+
+      FirebaseMessaging.instance.onTokenRefresh.listen((tok) {
+        print("token refreshed:$tok");
+      });
+    } else if (settings.authorizationStatus ==
+        AuthorizationStatus.provisional) {
+      print('ユーザーは一時的に通知を許可しました。');
+    } else {
+      print('ユーザーは通知を拒否しました。');
+    }
+    return settings;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -43,7 +105,23 @@ class _SettingsPageState extends State<SettingsPage> {
             title: const Text('通知'),
             value: _settings.notifications,
             onChanged: (bool value) async {
-              await _settings.setNotifications(value);
+              if (value) {
+                NotificationSettings requestSettings =
+                    await _requestNotificationPermission();
+                if (requestSettings.authorizationStatus ==
+                        AuthorizationStatus.authorized ||
+                    requestSettings.authorizationStatus ==
+                        AuthorizationStatus.provisional) {
+                  await _settings.setNotifications(true);
+                } else {
+                  await _settings.setNotifications(false);
+                }
+                notificationSubscriber(NotifyMode.subscribe, "notify");
+              } else {
+                notificationSubscriber(NotifyMode.unsubscribe, "notify");
+
+                await _settings.setNotifications(false);
+              }
               setState(() {});
             },
           ),
@@ -117,6 +195,11 @@ class _MembersPageState extends State<MembersPage> {
                     onChanged: (bool? newValue) async {
                       if (newValue != null) {
                         await _settings.setGroupSelection(group, newValue);
+                        if (newValue) {
+                          notificationSubscriber(NotifyMode.subscribe, group);
+                        } else {
+                          notificationSubscriber(NotifyMode.unsubscribe, group);
+                        }
                         setState(() {});
                       }
                     },
@@ -129,6 +212,17 @@ class _MembersPageState extends State<MembersPage> {
                       onChanged: (bool? newValue) async {
                         if (newValue != null) {
                           await _settings.setMemberSelection(member, newValue);
+                          if (newValue) {
+                            notificationSubscriber(
+                              NotifyMode.subscribe,
+                              member,
+                            );
+                          } else {
+                            notificationSubscriber(
+                              NotifyMode.unsubscribe,
+                              member,
+                            );
+                          }
                           setState(() {});
                         }
                       },

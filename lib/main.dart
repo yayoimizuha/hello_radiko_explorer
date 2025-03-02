@@ -9,6 +9,13 @@ import 'widgets/audio_controller.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+
+@pragma('vm:')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp();
+  print("Handling a background message: ${message.messageId}");
+}
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -17,7 +24,13 @@ Future<void> main() async {
     persistenceEnabled: true,
   );
   await FirebaseAnalytics.instance.logAppOpen();
-
+  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+  FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+    if (message.notification != null) {
+      print("title:${message.notification!.title}");
+      print("body:${message.notification!.body}");
+    }
+  });
   await SettingsService().init();
   await DownloadService().init(); // DownloadServiceを初期化
   runApp(const MyApp());
