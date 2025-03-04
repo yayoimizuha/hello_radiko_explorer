@@ -3,12 +3,12 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'listen_now_page.dart';
-import 'downloads_page.dart';
 import 'package:intl/intl.dart';
 import 'package:hello_radiko_explorer/services/settings_service.dart';
 import 'package:hello_radiko_explorer/services/download_service.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:firebase_analytics/firebase_analytics.dart';
 
 class ProgramDetailPage extends StatefulWidget {
   final RadioProgram program;
@@ -31,6 +31,18 @@ class _ProgramDetailPageState extends State<ProgramDetailPage> {
   @override
   void initState() {
     super.initState();
+    Future(() async {
+      await FirebaseAnalytics.instance.logEvent(
+        name: "detail_program",
+        parameters: {
+          "id": widget.program.id,
+          "title": widget.program.title,
+          "channel": widget.program.radioChannel.id,
+          "ft": widget.program.ft.toIso8601String(),
+          "to": widget.program.to.toIso8601String(),
+        },
+      );
+    });
     openRadikoInApp = SettingsService().openRadikoInApp;
   }
 
@@ -194,7 +206,7 @@ class _ProgramDetailPageState extends State<ProgramDetailPage> {
         Padding(
           padding: const EdgeInsets.only(right: 8.0),
           child: SizedBox(
-            width: 200,
+            width: 140,
             height: 60,
             child: ElevatedButton(
               style: ElevatedButton.styleFrom(
@@ -207,6 +219,14 @@ class _ProgramDetailPageState extends State<ProgramDetailPage> {
                     widget.openRadikoInApp
                         ? 'radiko://radiko.onelink.me/?deep_link_sub1=${program.radioChannel.id}&deep_link_sub2=${DateFormat('yyyyMMddHHmmss').format(program.ft)}&deep_link_value=${program.id}'
                         : 'https://radiko.jp/#!/ts/${program.radioChannel.id}/${DateFormat('yyyyMMddHHmmss').format(program.ft)}';
+                await FirebaseAnalytics.instance.logEvent(
+                  name: "open_external_link",
+                  parameters: {
+                    "id": widget.program.id,
+                    "url": radikoUrl,
+                    "method": widget.openRadikoInApp ? 'アプリ' : 'ブラウザ',
+                  },
+                );
                 await launchUrl(Uri.parse(radikoUrl));
               },
               child: Text('${widget.openRadikoInApp ? 'アプリ' : 'ブラウザ'}で開く'),
@@ -234,6 +254,14 @@ class _ProgramDetailPageState extends State<ProgramDetailPage> {
                 widget.openRadikoInApp
                     ? 'radiko://radiko.onelink.me/?deep_link_sub1=${program.radioChannel.id}&deep_link_sub2=${DateFormat('yyyyMMddHHmmss').format(program.ft)}&deep_link_value=${program.id}'
                     : 'https://radiko.jp/#!/ts/${program.radioChannel.id}/${DateFormat('yyyyMMddHHmmss').format(program.ft)}';
+            await FirebaseAnalytics.instance.logEvent(
+              name: "open_play_now_link",
+              parameters: {
+                "id": widget.program.id,
+                "url": radikoUrl,
+                "method": widget.openRadikoInApp ? 'アプリ' : 'ブラウザ',
+              },
+            );
             await launchUrl(Uri.parse(radikoUrl));
           },
           child: const Text('今すぐ再生'),
@@ -246,7 +274,7 @@ class _ProgramDetailPageState extends State<ProgramDetailPage> {
     return Padding(
       padding: const EdgeInsets.only(right: 8.0),
       child: SizedBox(
-        width: 200,
+        width: 140,
         height: 60,
         child: ElevatedButton(
           style: ElevatedButton.styleFrom(
@@ -254,62 +282,89 @@ class _ProgramDetailPageState extends State<ProgramDetailPage> {
               borderRadius: BorderRadius.circular(5),
             ),
           ),
-          onPressed: _isTimeFreeDownloading
-              ? null
-              : () async {
-                  setState(() {
-                    _isTimeFreeDownloading = true;
-                  });
-                  try {
-                    // ダウンロードサービスを初期化
-                    final downloadService = DownloadService();
-                    await downloadService.init();
- 
-                    // 既にダウンロード済みかチェック
-                    final existingUrl = await downloadService.getDownloadedUrl(
-                      program.radioChannel.id,
-                      program.ft,
-                    );
- 
-                    if (existingUrl != null) {
-                      Navigator.pop(
-                        context,
-                        'downloads:${program.radioChannel.id}-${program.id}',
-                      );
-                      return;
-                    }
- 
-                    // ダウンロードAPIにリクエストを送信
-                    final url =
-                        'https://asia-northeast1-hello-radiko.cloudfunctions.net/download_timefree?ft=${program.ft.toString()}%2B09:00&channel=${program.radioChannel.id}';
- 
+          onPressed:
+              _isTimeFreeDownloading
+                  ? null
+                  : () async {
+                    setState(() {
+                      _isTimeFreeDownloading = true;
+                    });
                     try {
-                      final response = await http.get(Uri.parse(url));
-                      final decodedBody = utf8.decode(response.bodyBytes);
-                      final responseData = json.decode(decodedBody);
- 
-                      if (responseData['status'] == 'success') {
-                        final downloadUrl = responseData['url'];
- 
-                        await downloadService.saveDownloadedAudio(
-                          program: program,
-                          url: downloadUrl,
-                        );
- 
-                        if (!context.mounted) return;
+                      // ダウンロードサービスを初期化
+                      final downloadService = DownloadService();
+                      await downloadService.init();
+
+                      // 既にダウンロード済みかチェック
+                      final existingUrl = await downloadService
+                          .getDownloadedUrl(
+                            program.radioChannel.id,
+                            program.ft,
+                          );
+
+                      if (existingUrl != null) {
                         Navigator.pop(
                           context,
                           'downloads:${program.radioChannel.id}-${program.id}',
                         );
-                      } else {
+                        return;
+                      }
+
+                      // ダウンロードAPIにリクエストを送信
+                      final url =
+                          'https://asia-northeast1-hello-radiko.cloudfunctions.net/download_timefree?ft=${program.ft.toString()}%2B09:00&channel=${program.radioChannel.id}';
+
+                      try {
+                        final response = await http.get(Uri.parse(url));
+                        final decodedBody = utf8.decode(response.bodyBytes);
+                        final responseData = json.decode(decodedBody);
+                        await FirebaseAnalytics.instance.logEvent(
+                          name: "download_timefree",
+                          parameters: {"id": widget.program.id, "url": url},
+                        );
+
+                        if (responseData['status'] == 'success') {
+                          final downloadUrl = responseData['url'];
+
+                          await downloadService.saveDownloadedAudio(
+                            program: program,
+                            url: downloadUrl,
+                          );
+
+                          if (!context.mounted) return;
+                          Navigator.pop(
+                            context,
+                            'downloads:${program.radioChannel.id}-${program.id}',
+                          );
+                        } else {
+                          if (!context.mounted) return;
+                          showDialog(
+                            context: context,
+                            builder: (BuildContext context) {
+                              return AlertDialog(
+                                title: const Text('エラー'),
+                                content: Text(
+                                  responseData['reason'] ?? 'ダウンロードに失敗しました',
+                                ),
+                                actions: <Widget>[
+                                  TextButton(
+                                    onPressed: () {
+                                      Navigator.of(context).pop();
+                                    },
+                                    child: const Text('閉じる'),
+                                  ),
+                                ],
+                              );
+                            },
+                          );
+                        }
+                      } catch (e) {
                         if (!context.mounted) return;
                         showDialog(
                           context: context,
                           builder: (BuildContext context) {
                             return AlertDialog(
                               title: const Text('エラー'),
-                              content: Text(responseData['reason'] ??
-                                  'ダウンロードに失敗しました'),
+                              content: Text('通信エラーが発生しました: $e'),
                               actions: <Widget>[
                                 TextButton(
                                   onPressed: () {
@@ -322,37 +377,16 @@ class _ProgramDetailPageState extends State<ProgramDetailPage> {
                           },
                         );
                       }
-                    } catch (e) {
-                      if (!context.mounted) return;
-                      showDialog(
-                        context: context,
-                        builder: (BuildContext context) {
-                          return AlertDialog(
-                            title: const Text('エラー'),
-                            content: Text('通信エラーが発生しました: $e'),
-                            actions: <Widget>[
-                              TextButton(
-                                onPressed: () {
-                                  Navigator.of(context).pop();
-                                },
-                                child: const Text('閉じる'),
-                              ),
-                            ],
-                          );
-                        },
-                      );
+                    } finally {
+                      setState(() {
+                        _isTimeFreeDownloading = false;
+                      });
                     }
-                  } finally {
-                    setState(() {
-                      _isTimeFreeDownloading = false;
-                    });
-                  }
-                },
-          child: _isTimeFreeDownloading
-              ? const CircularProgressIndicator(
-                  color: Colors.white,
-                )
-              : const Text('タイムフリーを再生'),
+                  },
+          child:
+              _isTimeFreeDownloading
+                  ? const CircularProgressIndicator(color: Colors.white)
+                  : const Text('タイムフリーを再生', textAlign: TextAlign.center),
         ),
       ),
     );

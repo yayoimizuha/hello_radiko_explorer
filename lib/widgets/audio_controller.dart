@@ -1,9 +1,11 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:hello_radiko_explorer/services/audio_service.dart';
 import 'package:audioplayers/audioplayers.dart';
 
 class AudioController extends StatefulWidget {
-  const AudioController({Key? key}) : super(key: key);
+  const AudioController({super.key});
 
   @override
   _AudioControllerState createState() => _AudioControllerState();
@@ -11,7 +13,7 @@ class AudioController extends StatefulWidget {
 
 class _AudioControllerState extends State<AudioController> {
   bool _isPlaying = false;
-  
+
   @override
   void initState() {
     super.initState();
@@ -21,13 +23,20 @@ class _AudioControllerState extends State<AudioController> {
       });
     });
   }
-  
+
   void _togglePlay() async {
     if (_isPlaying) {
       await AudioService.pause();
     } else {
       await AudioService.resume();
     }
+  }
+
+  String _formatDuration(Duration d) {
+    int minutes = d.inMinutes;
+    int seconds = d.inSeconds % 60;
+    String twoDigits(int n) => n.toString().padLeft(2, '0');
+    return "${twoDigits(minutes)}:${twoDigits(seconds)}";
   }
 
   @override
@@ -39,62 +48,89 @@ class _AudioControllerState extends State<AudioController> {
               ? Colors.grey[800]
               : Colors.grey[300],
       padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 4),
-      child: Column(
+      child: Stack(
         children: [
-          // シークバーをオーディオコントローラーの上辺に配置
-          StreamBuilder<Duration?>(
-            stream: AudioService.durationStream,
-            builder: (context, durationSnapshot) {
-              final duration = durationSnapshot.data ?? Duration.zero;
-              return SizedBox(
+          Column(
+            children: [
+              SizedBox(
                 height: 30,
-                child: StreamBuilder<Duration>(
-                  stream: AudioService.positionStream,
-                  builder: (context, positionSnapshot) {
-                    final position = positionSnapshot.data ?? Duration.zero;
-                    return SliderTheme(
-                      data: SliderTheme.of(context).copyWith(trackHeight: 4.0),
-                      child: Slider(
-                        value: position.inSeconds.toDouble(),
-                        min: 0,
-                        max: duration.inSeconds.toDouble(),
-                        onChanged: (value) async {
-                          await AudioService.seek(
-                            Duration(seconds: value.toInt()),
-                          );
-                        },
-                      ),
+                child: StreamBuilder<Duration?>(
+                  stream: AudioService.durationStream,
+                  builder: (context, durationSnapshot) {
+                    final duration = durationSnapshot.data ?? Duration.zero;
+                    return StreamBuilder<Duration>(
+                      stream: AudioService.positionStream,
+                      builder: (context, positionSnapshot) {
+                        final position = positionSnapshot.data ?? Duration.zero;
+                        return SliderTheme(
+                          data: SliderTheme.of(
+                            context,
+                          ).copyWith(trackHeight: 4.0),
+                          child: Slider(
+                            value: min(
+                              position.inSeconds.toDouble(),
+                              duration.inSeconds.toDouble(),
+                            ),
+                            min: 0,
+                            max: duration.inSeconds.toDouble(),
+                            onChanged: (value) async {
+                              await AudioService.seek(
+                                Duration(seconds: value.toInt()),
+                              );
+                            },
+                          ),
+                        );
+                      },
                     );
                   },
                 ),
-              );
-            },
+              ),
+              Expanded(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    IconButton(
+                      iconSize: 24.0,
+                      icon: const Icon(Icons.replay_30),
+                      onPressed: () async {
+                        await AudioService.skipSize(-30);
+                      },
+                    ),
+                    IconButton(
+                      iconSize: 24.0,
+                      icon: Icon(_isPlaying ? Icons.pause : Icons.play_arrow),
+                      onPressed: _togglePlay,
+                    ),
+                    IconButton(
+                      iconSize: 24.0,
+                      icon: const Icon(Icons.forward_30),
+                      onPressed: () async {
+                        await AudioService.skipSize(30);
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-          // 再生/停止・スキップボタンの配置
-          Expanded(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                IconButton(
-                  iconSize: 24.0,
-                  icon: const Icon(Icons.replay_30),
-                  onPressed: () async {
-                    await AudioService.skipSize(-30);
+          Positioned(
+            right: 4,
+            bottom: 2,
+            child: StreamBuilder<Duration?>(
+              stream: AudioService.durationStream,
+              builder: (context, durationSnapshot) {
+                final duration = durationSnapshot.data ?? Duration.zero;
+                return StreamBuilder<Duration>(
+                  stream: AudioService.positionStream,
+                  builder: (context, positionSnapshot) {
+                    final position = positionSnapshot.data ?? Duration.zero;
+                    return Text(
+                      "${_formatDuration(position)}/${_formatDuration(duration)}",
+                      style: const TextStyle(fontSize: 12),
+                    );
                   },
-                ),
-                IconButton(
-                  iconSize: 24.0,
-                  icon: Icon(_isPlaying ? Icons.pause : Icons.play_arrow),
-                  onPressed: _togglePlay,
-                ),
-                IconButton(
-                  iconSize: 24.0,
-                  icon: const Icon(Icons.forward_30),
-                  onPressed: () async {
-                    await AudioService.skipSize(30);
-                  },
-                ),
-              ],
+                );
+              },
             ),
           ),
         ],

@@ -7,6 +7,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:hello_radiko_explorer/services/settings_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'program_detail_page.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
 
 class ListenNowPage extends StatefulWidget {
   final Function(String)? onTabSwitch;
@@ -51,8 +52,14 @@ class RadioProgram {
         json['radio_channel'] as Map<String, dynamic>,
       ),
       id: json['id'],
-      ft: json['ft'] is String ? DateTime.parse(json['ft']) : (json['ft'] as Timestamp).toDate(),
-      to: json['to'] is String ? DateTime.parse(json['to']) : (json['to'] as Timestamp).toDate(),
+      ft:
+          json['ft'] is String
+              ? DateTime.parse(json['ft'])
+              : (json['ft'] as Timestamp).toDate(),
+      to:
+          json['to'] is String
+              ? DateTime.parse(json['to'])
+              : (json['to'] as Timestamp).toDate(),
       dur: json['dur'],
       title: json['title'],
       img: json['img'],
@@ -63,7 +70,10 @@ class RadioProgram {
           (json['on_air_music'] as List<dynamic>)
               .map((e) => OnAirMusic.fromJson(e as Map<String, dynamic>))
               .toList(),
-      expireAt: json['expire_at'] is String ? DateTime.parse(json['expire_at']) : (json['expire_at'] as Timestamp).toDate(),
+      expireAt:
+          json['expire_at'] is String
+              ? DateTime.parse(json['expire_at'])
+              : (json['expire_at'] as Timestamp).toDate(),
     );
   }
 
@@ -183,6 +193,13 @@ class _ListenNowPageState extends State<ListenNowPage> {
   @override
   void initState() {
     super.initState();
+    Future(() async {
+      await FirebaseAnalytics.instance.logEvent(
+        name: "open_tab",
+        parameters: {"tab_name": "listen_now"},
+      );
+    });
+
     _scrollController = ScrollController();
     _loadSelectedMembersAndGroups().then((_) {
       if (!mounted) return;

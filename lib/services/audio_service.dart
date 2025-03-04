@@ -1,7 +1,6 @@
 import 'package:audioplayers/audioplayers.dart';
 import 'dart:typed_data';
 import 'dart:convert';
-import 'dart:isolate';
 
 class AudioService {
   static final AudioPlayer _audioPlayer = AudioPlayer();
