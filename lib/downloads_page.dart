@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hello_radiko_explorer/services/download_service.dart';
 import 'package:hello_radiko_explorer/services/audio_service.dart';
-import 'package:audioplayers/audioplayers.dart';
+import 'package:just_audio/just_audio.dart';
 import 'dart:async';
 import 'package:intl/intl.dart';
 import 'package:hello_radiko_explorer/listen_now_page.dart';
@@ -47,7 +47,7 @@ class _DownloadsPageState extends State<DownloadsPage>
       state,
     ) {
       setState(() {
-        if (state == PlayerState.playing) {
+        if (state.playing) {
           _isAudioPlaying = true;
         } else {
           _isAudioPlaying = false;
