@@ -4,7 +4,6 @@ import 'package:flutter/services.dart' show rootBundle;
 import 'package:hello_radiko_explorer/services/settings_service.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 Future<Map<String, List<String>>> loadMembers() async {
@@ -74,14 +73,12 @@ class _SettingsPageState extends State<SettingsPage> {
     );
     if (settings.authorizationStatus == AuthorizationStatus.authorized) {
       print('ユーザーは通知を許可しました。');
-      FirebaseMessaging.instance
-          .getToken(
-            vapidKey:
-                "BOvIveuTRfpNc0ZEzPMtEG8cV-hX2eLTO-nS3NNfe3pbi24-b_TsIQ2JNFpa7kfpeCXc4QMrKte3Arh3562BAc8",
-          )
-          .then((token) {
-            print('トークン: $token');
-          });
+      // await Future.delayed(Duration(seconds: 2));
+      var token = await FirebaseMessaging.instance.getToken(
+        vapidKey:
+            "BOvIveuTRfpNc0ZEzPMtEG8cV-hX2eLTO-nS3NNfe3pbi24-b_TsIQ2JNFpa7kfpeCXc4QMrKte3Arh3562BAc8",
+      );
+      print('トークン: $token');
 
       FirebaseMessaging.instance.onTokenRefresh.listen((tok) {
         print("token refreshed:$tok");

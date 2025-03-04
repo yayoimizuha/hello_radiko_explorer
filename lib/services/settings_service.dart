@@ -3,7 +3,6 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:web/web.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
-import 'package:sembast/sembast.dart';
 import 'package:sembast_web/sembast_web.dart';
 
 class SettingsService {

@@ -1,16 +1,62 @@
-# hello_radiko_explorer
+# Hello! Project Radiko Explorer
 
-ハロプロ関連のradikoを一覧できます。
+ハロプロ関連のradikoラジオ番組を一覧・視聴できるWebアプリケーションです。  
+[https://hello-radiko.web.app](https://hello-radiko.web.app) でホスティングされています。
 
-## Getting Started
+## 概要
 
-This project is a starting point for a Flutter application.
+Hello! Project Radiko Explorerは、ハロー！プロジェクト（ハロプロ）関連のラジオ番組を簡単に見つけて聴くことができるアプリケーションです。お気に入りのグループやメンバーが出演する番組を一覧表示し、radikoで視聴したり、タイムフリー（過去放送）をダウンロードして後で聴いたりすることができます。
 
-A few resources to get you started if this is your first Flutter project:
+## 主な機能
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+- **番組一覧表示**: 選択したハロプログループ・メンバーが出演するラジオ番組を一覧表示
+- **番組詳細表示**: 番組の詳細情報（概要、出演者、オンエア楽曲など）を表示
+- **radikoアプリ連携**: radikoアプリまたはブラウザで番組を開いて視聴
+- **タイムフリーダウンロード**: 過去の放送をダウンロードしてアプリ内で再生
+- **プッシュ通知**: お気に入りのメンバーが出演する番組の放送開始を通知
+- **ダークモード対応**: 明るさに応じた表示モードの切り替え
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## 技術スタック
+
+- **フレームワーク**: Flutter Web
+- **バックエンド**: Firebase (Firestore, Hosting, Cloud Functions, Analytics, Messaging)
+- **データストレージ**: Sembast (ブラウザのローカルストレージ)
+- **その他の主要パッケージ**:
+  - audioplayers: オーディオ再生
+  - cached_network_image: 画像のキャッシュ
+  - flutter_markdown: マークダウン表示
+  - url_launcher: 外部リンク・アプリの起動
+
+## 使い方
+
+1. **メンバー・グループ選択**: 設定画面でお気に入りのハロプロメンバーやグループを選択します
+2. **番組一覧**: 「今すぐ聞く」タブで選択したメンバー・グループが出演する番組を確認できます
+3. **番組詳細**: 番組をタップすると詳細画面が表示され、番組情報や出演者、オンエア楽曲などを確認できます
+4. **視聴方法**:
+   - 放送中の番組: 「今すぐ再生」ボタンでradikoアプリまたはブラウザで視聴
+   - 過去の番組: 「タイムフリーを再生」ボタンでダウンロードして視聴
+5. **ダウンロード管理**: 「ダウンロード済み」タブでダウンロードした番組を管理・再生できます
+
+## 対応グループ
+
+- モーニング娘。
+- アンジュルム
+- Juice=Juice
+- つばきファクトリー
+- BEYOOOOONDS
+- OCHA NORMA
+- ロージークロニクル
+- ハロプロ研修生
+- OG（卒業生）
+
+## 開発者向け情報
+
+このプロジェクトはFlutterで開発されています。開発環境のセットアップや貢献方法については、以下のFlutter公式ドキュメントを参照してください。
+
+- [Flutter公式ドキュメント](https://docs.flutter.dev/)
+- [Flutter初めてのアプリ開発](https://docs.flutter.dev/get-started/codelab)
+- [Flutterサンプル集](https://docs.flutter.dev/cookbook)
+
+## ライセンス
+
+このプロジェクトは非公式のファンメイドアプリケーションです。ハロー！プロジェクトおよびradikoの商標・著作権はそれぞれの所有者に帰属します。

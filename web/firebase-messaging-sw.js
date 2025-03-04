@@ -13,6 +13,15 @@ self.addEventListener('activate', (event) => {
     event.waitUntil(self.clients.claim());
 });
 
+
+self.addEventListener('notificationclick', (event) => {
+    console.log('Notification clicked:', event);
+    event.notification.close();
+    event.waitUntil(
+      clients.openWindow('/')
+    );
+  });
+  
 firebase.initializeApp({
     apiKey: "AIzaSyBnLBxvDm_LH1dYDZAaqoPs5R4q6iFcjlc",
     authDomain: "hello-radiko.firebaseapp.com",
@@ -54,8 +63,9 @@ messaging.onBackgroundMessage(async (payload) => {
                         console.log("matched_member=", matched_member);
                         if (matched_member.length == 0) {
                             return;
+                        }else{
+                            self.registration.showNotification(payload.data["title"] + "が間もなく始まります。", { body: matched_member.join(",") + "が出演します。\n" + payload.data["ft"] + "～" });
                         }
-                        self.registration.showNotification(payload.data["title"] + "が間もなく始まります。", { body: matched_member.join(",") + "が出演します。\n" + payload.data["ft"] + "～" });
                     }
                 }
                 catch (error) {

@@ -25,10 +25,10 @@ Future<void> main() async {
   );
   await FirebaseAnalytics.instance.logAppOpen();
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
-  FirebaseMessaging.instance.getToken(
-    vapidKey:
-        "BOvIveuTRfpNc0ZEzPMtEG8cV-hX2eLTO-nS3NNfe3pbi24-b_TsIQ2JNFpa7kfpeCXc4QMrKte3Arh3562BAc8",
-  );
+  // FirebaseMessaging.instance.getToken(
+  //   vapidKey:
+  //       "BOvIveuTRfpNc0ZEzPMtEG8cV-hX2eLTO-nS3NNfe3pbi24-b_TsIQ2JNFpa7kfpeCXc4QMrKte3Arh3562BAc8",
+  // );
 
   await SettingsService().init();
   await DownloadService().init(); // DownloadServiceを初期化
@@ -51,7 +51,7 @@ class _MyAppState extends State<MyApp> {
       valueListenable: _settings.darkModeNotifier,
       builder: (context, darkMode, child) {
         return MaterialApp(
-          title: 'Flutter Demo',
+          title: 'H!P radiko',
           theme: ThemeData(
             fontFamily: 'MPLUS2',
             colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigoAccent),
@@ -66,7 +66,7 @@ class _MyAppState extends State<MyApp> {
             useMaterial3: true,
           ),
           themeMode: darkMode ? ThemeMode.dark : ThemeMode.light,
-          home: const MyHomePage(title: 'Hello!Project radiko'),
+          home: const MyHomePage(title: 'Hello!Project radiko App'),
         );
       },
     );
@@ -89,20 +89,27 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            message.data["title"] +
-                "が間もなく始まります。\n" +
-                message.data["target"] +
-                "が出演します。\n放送開始時刻:" +
-                message.data["ft"],
-          ),
-        ),
-      );
+      SettingsService().loadSubscribedSembast().then((member) {
+        final subscribedMembers = member!.split(",");
+        List<String> matchedMembers = [];
+        for (var targetMember in message.data["target"].split(",")) {
+          if (subscribedMembers.contains(targetMember)) {
+            matchedMembers.add(targetMember);
+          }
+        }
+        if (matchedMembers.isNotEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            snackBarAnimationStyle: AnimationStyle(duration: Durations.medium4),
+            SnackBar(
+              content: Text(
+                "${message.data["title"]}が間もなく始まります。\n${matchedMembers.join(",")}が出演します。\n放送開始時刻:${message.data["ft"]}～",
+              ),
+            ),
+          );
+        }
+      });
     });
   }
 
