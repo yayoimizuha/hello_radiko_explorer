@@ -273,10 +273,13 @@ class _ListenNowPageState extends State<ListenNowPage> {
 
       // _allSelectedItems の内容を一つずつ getFirebaseStruct に与えて、その戻り値を _allRadioPrograms に入力
       List<(RadioProgram, String)> programs_1 = [];
+      List<Future<List<(RadioProgram, String)>>> futures = [];
       for (var item in _allSelectedItems) {
-        List<(RadioProgram, String)> radioPrograms = await getFirebaseStruct(
-          item,
-        );
+        futures.add(getFirebaseStruct(item));
+      }
+      List<List<(RadioProgram, String)>> listOfRadioPrograms =
+          await Future.wait(futures);
+      for (var radioPrograms in listOfRadioPrograms) {
         programs_1.addAll(radioPrograms);
       }
       programs_1.sort((a, b) => a.$1.id.compareTo(b.$1.id));
@@ -316,117 +319,120 @@ class _ListenNowPageState extends State<ListenNowPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('今すぐ聞く')),
-      body: ListView.builder(
-        controller: _scrollController,
-        itemCount: _allRadioPrograms.length,
-        itemBuilder: (context, index) {
-          final program = _allRadioPrograms[index];
-          return Padding(
-            padding: const EdgeInsets.only(
-              left: 16.0,
-              right: 16.0,
-              top: 4.0,
-              bottom: 4.0,
-            ),
-            child: GestureDetector(
-              onTap: () async {
-                final result = await Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder:
-                        (context) => ProgramDetailPage(
-                          program: program.$1,
-                          openRadikoInApp: settingsService.openRadikoInApp,
-                        ),
-                  ),
-                );
-                if (result != null) {
-                  widget.onTabSwitch?.call(result);
-                }
-              },
-              child: Container(
-                decoration: BoxDecoration(
-                  border: Border.all(
-                    color:
-                        DateTime.now().isAfter(program.$1.ft) &&
-                                DateTime.now().isBefore(program.$1.to)
-                            ? Colors.pink.shade200
-                            : Colors.grey.shade800,
-                    width:
-                        DateTime.now().isAfter(program.$1.ft) &&
-                                DateTime.now().isBefore(program.$1.to)
-                            ? 2
-                            : 1,
-                    style:
-                        DateTime.now().isBefore(program.$1.to)
-                            ? BorderStyle.none
-                            : BorderStyle.solid,
-                  ),
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // 画像
-                    CachedNetworkImage(
-                      imageUrl:
-                          "https://serveimage-rnfi7uy4qq-an.a.run.app/serveImage?url=${program.$1.img}",
-                      width: 160,
-                      height: 100,
-                      placeholder:
-                          (context, url) => const CircularProgressIndicator(),
-                      errorWidget:
-                          (context, url, error) => Image.network(
-                            'https://via.assets.so/img.jpg?w=480&h=300&tc=blue&bg=#cecece', // デフォルト画像
-                            width: 160,
-                            height: 100,
-                          ),
+      body:
+          _allRadioPrograms.isEmpty && _allSelectedItems.isEmpty
+              ? const Center(child: Text('設定画面でメンバーを選択してください'))
+              : ListView.builder(
+                controller: _scrollController,
+                itemCount: _allRadioPrograms.length,
+                itemBuilder: (context, index) {
+                  final program = _allRadioPrograms[index];
+                  return Padding(
+                    padding: const EdgeInsets.only(
+                      left: 16.0,
+                      right: 16.0,
+                      top: 4.0,
+                      bottom: 4.0,
                     ),
-                    const SizedBox(width: 16),
-                    // 番組情報
-                    Expanded(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.start,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        spacing: 2.4,
+                    child: GestureDetector(
+                      onTap: () async {
+                        final result = await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder:
+                                (context) => ProgramDetailPage(
+                                  program: program.$1,
+                                  openRadikoInApp:
+                                      settingsService.openRadikoInApp,
+                                ),
+                          ),
+                        );
+                        if (result != null) {
+                          widget.onTabSwitch?.call(result);
+                        }
+                      },
+                      child: Container(
+                        decoration: BoxDecoration(
+                          border: Border.all(
+                            color:
+                                program.$1.ft.isAfter(DateTime.now())
+                                    ? const Color.fromARGB(255, 168, 165, 138)
+                                    : program.$1.to.isBefore(DateTime.now())
+                                    ? Colors.blueGrey
+                                    : Colors.pink,
+                            width:
+                                DateTime.now().isAfter(program.$1.ft) &&
+                                        DateTime.now().isBefore(program.$1.to)
+                                    ? 2
+                                    : 1,
+                            style: BorderStyle.solid,
+                          ),
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // 画像
+                            CachedNetworkImage(
+                              imageUrl:
+                                  "https://serveimage-rnfi7uy4qq-an.a.run.app/serveImage?url=${program.$1.img}",
+                              width: 160,
+                              height: 100,
+                              placeholder:
+                                  (context, url) =>
+                                      const CircularProgressIndicator(),
+                              errorWidget:
+                                  (context, url, error) => Image.network(
+                                    'https://via.assets.so/img.jpg?w=480&h=300&tc=blue&bg=#cecece', // デフォルト画像
+                                    width: 160,
+                                    height: 100,
+                                  ),
+                            ),
+                            const SizedBox(width: 16),
+                            // 番組情報
+                            Expanded(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.start,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                spacing: 2.4,
 
-                        children: [
-                          Text(
-                            '${program.$1.ft.month}月${program.$1.ft.day}日 ${program.$1.ft.hour.toString().padLeft(2, '0')}時${program.$1.ft.minute.toString().padLeft(2, '0')}分',
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey,
+                                children: [
+                                  Text(
+                                    '${program.$1.ft.month}月${program.$1.ft.day}日 ${program.$1.ft.hour.toString().padLeft(2, '0')}時${program.$1.ft.minute.toString().padLeft(2, '0')}分',
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.grey,
+                                    ),
+                                  ),
+                                  Text(
+                                    program.$1.title,
+                                    style: const TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  // const SizedBox(height: 4),
+                                  // 出演者リスト
+                                  Wrap(
+                                    children:
+                                        program.$2
+                                            .map(
+                                              (member) => SizedBox(
+                                                // width: 150, // 幅を調整
+                                                child: Text('・$member    '),
+                                              ),
+                                            )
+                                            .toList(),
+                                  ),
+                                ],
+                              ),
                             ),
-                          ),
-                          Text(
-                            program.$1.title,
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          // const SizedBox(height: 4),
-                          // 出演者リスト
-                          Wrap(
-                            children:
-                                program.$2
-                                    .map(
-                                      (member) => SizedBox(
-                                        // width: 150, // 幅を調整
-                                        child: Text('・$member    '),
-                                      ),
-                                    )
-                                    .toList(),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
-                  ],
-                ),
+                  );
+                },
               ),
-            ),
-          );
-        },
-      ),
     );
   }
 }

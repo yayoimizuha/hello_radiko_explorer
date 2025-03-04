@@ -5,11 +5,11 @@ import 'dart:convert';
 class AudioService {
   static final AudioPlayer _audioPlayer = AudioPlayer();
   static String? currentPlayingDownloadId;
-
+  static bool _isPlaying = false;
   static Future<bool> isPlaying() async {
     // This is a simple implementation based on our tracking variable.
     // In a more robust solution, you might use _audioPlayer.onPlayerStateChanged.
-    return currentPlayingDownloadId != null;
+    return _isPlaying;
   }
 
   static Future<void> playAudioData(dynamic audioData) async {
@@ -27,6 +27,7 @@ class AudioService {
           await _audioPlayer.play(BytesSource(decodedData));
         }
       }
+      _isPlaying = true;
     } catch (e) {
       print("_decodeBase64 error: $e");
       // If decoding fails, assume it's a URL or file path.
@@ -68,15 +69,19 @@ class AudioService {
 
   static Future<void> pause() async {
     await _audioPlayer.pause();
+    _isPlaying = false;
   }
 
   static Future<void> resume() async {
     await _audioPlayer.resume();
+    _isPlaying = true;
   }
 
   static Future<void> stop() async {
     await _audioPlayer.stop();
-    currentPlayingDownloadId = null;
+    _isPlaying = false;
+
+    // currentPlayingDownloadId = null;
   }
 
   // static Future<void> skipForward() async {
@@ -106,4 +111,18 @@ class AudioService {
   static String? getCurrentPlayingDownloadId() {
     return currentPlayingDownloadId;
   }
+
+  static void _initialize() {
+    _audioPlayer.onPlayerStateChanged.listen((PlayerState state) {
+      if (state == PlayerState.paused) {
+        pause();
+      } else if (state == PlayerState.stopped) {
+        stop();
+      } else if (state == PlayerState.playing) {
+        resume();
+      }
+    });
+  }
+
+  static final _initComplete = _initialize();
 }

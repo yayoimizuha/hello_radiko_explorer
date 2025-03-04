@@ -241,7 +241,7 @@ class _ProgramDetailPageState extends State<ProgramDetailPage> {
     return Padding(
       padding: const EdgeInsets.only(right: 8.0),
       child: SizedBox(
-        width: 200,
+        width: 140,
         height: 60,
         child: ElevatedButton(
           style: ElevatedButton.styleFrom(
