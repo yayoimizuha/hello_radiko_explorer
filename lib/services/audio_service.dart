@@ -55,7 +55,7 @@ class MyAudioHandler extends audio_service_pkg.BaseAudioHandler
           queueIndex: 0,
         ),
       );
-      
+
       // 再生完了時に停止する
       if (_player.processingState == ProcessingState.completed && playing) {
         stop();
@@ -77,7 +77,7 @@ class MyAudioHandler extends audio_service_pkg.BaseAudioHandler
   }
 
   // オーディオデータの再生
-  Future<void> playAudioData(dynamic audioData) async {
+  Future<void> playAudioData(dynamic audioData, String title, Uri url) async {
     print("audioData.runtimeType:${audioData.runtimeType}");
 
     try {
@@ -85,7 +85,8 @@ class MyAudioHandler extends audio_service_pkg.BaseAudioHandler
       mediaItem.add(
         audio_service_pkg.MediaItem(
           id: currentPlayingDownloadId ?? 'unknown',
-          title: 'Audio',
+          title: title,
+          artUri: url,
           duration: await _player.duration ?? Duration.zero,
         ),
       );
@@ -230,9 +231,13 @@ class AudioService {
     return _audioHandler?.isPlaying() ?? false;
   }
 
-  static Future<void> playAudioData(dynamic audioData) async {
+  static Future<void> playAudioData(
+    dynamic audioData,
+    String title,
+    Uri url,
+  ) async {
     await init();
-    await _audioHandler?.playAudioData(audioData);
+    await _audioHandler?.playAudioData(audioData, title, url);
   }
 
   static Future<void> pause() async {

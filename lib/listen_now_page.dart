@@ -321,7 +321,9 @@ class _ListenNowPageState extends State<ListenNowPage> {
       appBar: AppBar(title: const Text('今すぐ聞く')),
       body:
           _allRadioPrograms.isEmpty && _allSelectedItems.isEmpty
-              ? const Center(child: Text('設定画面でメンバーを選択してください'))
+              ? const Center(
+                child: Text('ホーム画面に追加して通知を受け取ることができます。\nまず設定画面でメンバーを選択してください。'),
+              )
               : ListView.builder(
                 controller: _scrollController,
                 itemCount: _allRadioPrograms.length,
