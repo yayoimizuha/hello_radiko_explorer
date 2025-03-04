@@ -55,6 +55,12 @@ class MyAudioHandler extends audio_service_pkg.BaseAudioHandler
           queueIndex: 0,
         ),
       );
+      
+      // 再生完了時に停止する
+      if (_player.processingState == ProcessingState.completed && playing) {
+        stop();
+        _isPlaying = false;
+      }
     });
 
     // メディア情報の更新
