@@ -355,10 +355,10 @@ class _ListenNowPageState extends State<ListenNowPage> {
                         decoration: BoxDecoration(
                           border: Border.all(
                             color:
-                                program.$1.ft.isBefore(DateTime.now())
-                                    ? Colors.blueGrey
-                                    : program.$1.to.isAfter(DateTime.now())
+                                program.$1.ft.isAfter(DateTime.now())
                                     ? const Color.fromARGB(255, 168, 165, 138)
+                                    : program.$1.to.isBefore(DateTime.now())
+                                    ? Colors.blueGrey
                                     : Colors.pink,
                             width:
                                 DateTime.now().isAfter(program.$1.ft) &&
