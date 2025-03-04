@@ -48,7 +48,9 @@ dependencies:
   sembast: ^3.8.4
   sembast_web: ^2.4.1
   web: ^1.1.1
-  audioplayers: ^6.2.0
+  # audioplayers: ^6.2.0
+  just_audio: ^0.9.36
+  audio_service: ^0.18.17
   dotted_border: ^2.1.0
   firebase_analytics: ^11.4.4
   firebase_messaging: ^15.2.4

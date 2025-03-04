@@ -6,6 +6,7 @@ import 'listen_now_page.dart';
 import 'downloads_page.dart';
 import 'widgets/settings_screen.dart';
 import 'widgets/audio_controller.dart';
+import 'package:hello_radiko_explorer/services/audio_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
@@ -32,6 +33,7 @@ Future<void> main() async {
 
   await SettingsService().init();
   await DownloadService().init(); // DownloadServiceを初期化
+  await AudioService.init(); // AudioServiceを初期化
   runApp(const MyApp());
 }
 
