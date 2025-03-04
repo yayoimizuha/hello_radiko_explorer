@@ -261,6 +261,8 @@ class _DownloadsPageState extends State<DownloadsPage>
           final ft = download.ft;
           final downloadId =
               "${download.radioChannel.id}-${download.ft.toIso8601String()}";
+          // print("downloadId:$downloadId");
+          // print("_playingDownloadId:$_playingDownloadId");
           final isPlayingDownload =
               _isAudioPlaying && _playingDownloadId == downloadId;
 
