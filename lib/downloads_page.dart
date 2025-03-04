@@ -143,7 +143,11 @@ class _DownloadsPageState extends State<DownloadsPage>
       ft,
     );
     if (downloadedAudio != null) {
-      await AudioService.playAudioData(downloadedAudio);
+      await AudioService.playAudioData(
+        downloadedAudio,
+        download.title,
+        Uri.parse(download.radioChannel.bannerUrl),
+      );
       await FirebaseAnalytics.instance.logEvent(
         name: "play_downloaded",
         parameters: {"id": download.id},
@@ -153,7 +157,11 @@ class _DownloadsPageState extends State<DownloadsPage>
     } else {
       final url = await DownloadService().getDownloadedUrl(channelId, ft);
       if (url != null) {
-        await AudioService.playAudioData(url);
+        await AudioService.playAudioData(
+          url,
+          download.title,
+          Uri.parse(download.radioChannel.bannerUrl),
+        );
         playSuccess = true;
       } else {
         ScaffoldMessenger.of(
@@ -335,7 +343,11 @@ class _DownloadsPageState extends State<DownloadsPage>
                     final downloadedAudio = await DownloadService()
                         .getDownloadedAudio(channelId, ft);
                     if (downloadedAudio != null) {
-                      await AudioService.playAudioData(downloadedAudio);
+                      await AudioService.playAudioData(
+                        downloadedAudio,
+                        download.title,
+                        Uri.parse(download.radioChannel.bannerUrl),
+                      );
                       playSuccess = true;
                     } else {
                       final url = await DownloadService().getDownloadedUrl(
@@ -343,7 +355,11 @@ class _DownloadsPageState extends State<DownloadsPage>
                         ft,
                       );
                       if (url != null) {
-                        await AudioService.playAudioData(url);
+                        await AudioService.playAudioData(
+                          url,
+                          download.title,
+                          Uri.parse(download.radioChannel.bannerUrl),
+                        );
                         playSuccess = true;
                       } else {
                         ScaffoldMessenger.of(context).showSnackBar(
