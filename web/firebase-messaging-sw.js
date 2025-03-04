@@ -18,11 +18,28 @@ self.addEventListener('notificationclick', (event) => {
     console.log('Notification clicked:', event);
     event.notification.close();
     event.waitUntil(
-      clients.openWindow('/')
+      clients.matchAll({
+        type: 'window',
+        includeUncontrolled: true
+      }).then((windowClients) => {
+        let matchingClient = null;
+        for (let i = 0; i < windowClients.length; i++) {
+          const windowClient = windowClients[i];
+          if (windowClient.url === 'https://hello-radiko.web.app/') {
+            matchingClient = windowClient;
+            break;
+          }
+        }
+        if (matchingClient) {
+          return matchingClient.focus();
+        } else {
+          return clients.openWindow('https://hello-radiko.web.app/');
+        }
+      })
     );
   });
-  
-firebase.initializeApp({
+
+  firebase.initializeApp({
     apiKey: "AIzaSyBnLBxvDm_LH1dYDZAaqoPs5R4q6iFcjlc",
     authDomain: "hello-radiko.firebaseapp.com",
     projectId: "hello-radiko",
