@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hello_radiko_explorer/services/download_service.dart';
 import 'package:hello_radiko_explorer/services/audio_service.dart';
-import 'package:just_audio/just_audio.dart';
 import 'dart:async';
 import 'package:intl/intl.dart';
 import 'package:hello_radiko_explorer/listen_now_page.dart';
@@ -146,7 +145,7 @@ class _DownloadsPageState extends State<DownloadsPage>
       await AudioService.playAudioData(
         downloadedAudio,
         download.title,
-        Uri.parse(download.radioChannel.bannerUrl),
+        Uri.parse(download.img ?? download.radioChannel.bannerUrl),
       );
       await FirebaseAnalytics.instance.logEvent(
         name: "play_downloaded",
@@ -160,7 +159,7 @@ class _DownloadsPageState extends State<DownloadsPage>
         await AudioService.playAudioData(
           url,
           download.title,
-          Uri.parse(download.radioChannel.bannerUrl),
+          Uri.parse(download.img ?? download.radioChannel.bannerUrl),
         );
         playSuccess = true;
       } else {
@@ -346,7 +345,9 @@ class _DownloadsPageState extends State<DownloadsPage>
                       await AudioService.playAudioData(
                         downloadedAudio,
                         download.title,
-                        Uri.parse(download.radioChannel.bannerUrl),
+                        Uri.parse(
+                          download.img ?? download.radioChannel.bannerUrl,
+                        ),
                       );
                       playSuccess = true;
                     } else {
@@ -358,7 +359,9 @@ class _DownloadsPageState extends State<DownloadsPage>
                         await AudioService.playAudioData(
                           url,
                           download.title,
-                          Uri.parse(download.radioChannel.bannerUrl),
+                          Uri.parse(
+                            download.img ?? download.radioChannel.bannerUrl,
+                          ),
                         );
                         playSuccess = true;
                       } else {
