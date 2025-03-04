@@ -1,8 +1,6 @@
 import 'dart:math';
-
 import 'package:flutter/material.dart';
 import 'package:hello_radiko_explorer/services/audio_service.dart';
-import 'package:just_audio/just_audio.dart';
 
 class AudioController extends StatefulWidget {
   const AudioController({super.key});
